@@ -1,0 +1,152 @@
+# Reo Fenua : construit l'application Android à partir de bitchat-android.
+# Ce fichier fonctionne SEUL : aucun autre fichier du dépôt n'est nécessaire.
+# Lancer : onglet "Actions" > "Construire l'APK Reo Fenua" > "Run workflow".
+# Résultat : l'APK apparaît dans l'onglet "Releases" du dépôt (lien de téléchargement direct).
+
+name: Construire l'APK Reo Fenua
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Récupérer bitchat-android
+        run: git clone --depth 1 https://github.com/permissionlesstech/bitchat-android.git upstream
+
+      - name: Appliquer le style Reo Fenua et le relais automatique
+        working-directory: upstream
+        run: |
+          python3 - <<'PY'
+          import re, pathlib
+
+          def warn(msg):
+              print(f"::warning::{msg}")
+
+          def edit(path, fn):
+              p = pathlib.Path(path)
+              if not p.exists():
+                  warn(f"Fichier introuvable, ignoré : {path}")
+                  return
+              p.write_text(fn(p.read_text()))
+
+          C = lambda h: f"Color(0xFF{h})"
+
+          def set_block(text, header, values):
+              m = re.search(r"(" + re.escape(header) + r")(.*?)(\n\))", text, re.S)
+              if not m:
+                  warn(f"Bloc introuvable : {header}")
+                  return text
+              body = m.group(2)
+              for k, v in values.items():
+                  body, n = re.subn(r"(\n    " + k + r" = )[^,\n]+", r"\g<1>" + v, body)
+                  if n != 1:
+                      warn(f"Couleur {k} introuvable dans {header}")
+              return text[:m.start(2)] + body + text[m.end(2):]
+
+          T = "app/src/main/java/com/bitchat/android/ui/theme/"
+
+          # 1. Couleurs du fenua : lagon, océan, sable, rouge hibiscus, vanille
+          def theme(t):
+              t = set_block(t, "LightBitchatColorScheme = lightColorScheme(", dict(
+                  primary=C("0E7C86"), onPrimary="Color.White",
+                  primaryContainer=C("D7ECEE"), onPrimaryContainer=C("0B3C5D"),
+                  secondary=C("0B3C5D"), onSecondary="Color.White",
+                  secondaryContainer=C("D2E3EE"), onSecondaryContainer=C("072638"),
+                  background=C("F7EFE2"), onBackground=C("1B2A33"),
+                  surface=C("FFFFFF"), onSurface=C("1B2A33"),
+                  surfaceVariant=C("EFE5D5"), onSurfaceVariant=C("3D5260"),
+                  outline=C("C9BBA4"), outlineVariant=C("E6DCCB"),
+                  error=C("C8102E"), onError="Color.White"))
+              t = set_block(t, "DarkBitchatColorScheme = darkColorScheme(", dict(
+                  primary=C("4FC3CC"), onPrimary=C("00363B"),
+                  primaryContainer=C("0B4F56"), onPrimaryContainer=C("C6EEF1"),
+                  secondary=C("8EC5E8"), onSecondary=C("062B42"),
+                  secondaryContainer=C("0B3C5D"), onSecondaryContainer=C("D2E3EE"),
+                  background=C("071E2E"), onBackground=C("F3ECE0"),
+                  surface=C("0B2A3E"), onSurface=C("F3ECE0"),
+                  surfaceVariant=C("123850"), onSurfaceVariant=C("A9BFCC"),
+                  outline=C("2C5570"), outlineVariant=C("1A4058"),
+                  error=C("FF6B7F"), onError="Color.Black"))
+              return t
+          edit(T + "Theme.kt", theme)
+
+          def palette(p):
+              p = set_block(p, "LightBitchatPalette = BitchatPalette(", dict(
+                  inputOutline=C("C9BBA4"), inputOutlineFocused=C("0E7C86"),
+                  inputSurface=C("FBF7F0"), inputSurfaceFocused=C("FFFFFF"),
+                  inputButton=C("E8B33A"), textTertiary=C("5B6B76"),
+                  accentOrange=C("A8580F"), accentPurple=C("C8102E")))
+              p = set_block(p, "DarkBitchatPalette = BitchatPalette(", dict(
+                  inputOutline=C("2C5570"), inputOutlineFocused=C("4FC3CC"),
+                  inputSurface=C("0B2A3E"), inputSurfaceFocused=C("123850"),
+                  inputButton=C("1A4058"), textTertiary=C("8FA6B4"),
+                  accentOrange=C("E8B33A"), accentPurple=C("FF8FA0")))
+              return p
+          edit(T + "BitchatPalette.kt", palette)
+
+          # 2. Nom de l'application
+          edit("app/src/main/res/values/strings.xml", lambda s: re.sub(
+              r'<string name="app_name">[^<]*</string>',
+              '<string name="app_name">Reo Fenua</string>', s))
+
+          # 3. Texte plus grand pour l'accessibilité (14 -> 17)
+          edit("app/src/main/java/com/bitchat/android/util/AppConstants.kt", lambda s: re.sub(
+              r"BASE_FONT_SIZE_SP: Int = \d+", "BASE_FONT_SIZE_SP: Int = 17", s))
+
+          # 4. Relais automatique : Wi-Fi Aware activé par défaut.
+          #    Bluetooth -> Wi-Fi (téléphones compatibles) -> Internet (Nostr) quand il revient.
+          for f in pathlib.Path("app/src/main/java").rglob("*.kt"):
+              s = f.read_text()
+              n = s.replace("getWifiAwareEnabled(false)", "getWifiAwareEnabled(true)") \
+                   .replace("getWifiAwareEnabled(default: Boolean = false)", "getWifiAwareEnabled(default: Boolean = true)")
+              if n != s:
+                  f.write_text(n)
+                  print(f"Wi-Fi activé par défaut : {f}")
+
+          print("Style Reo Fenua appliqué.")
+          PY
+
+      - name: Installer Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Installer Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Construire l'APK
+        working-directory: upstream
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Préparer l'APK universel (marche sur tous les téléphones)
+        run: |
+          mkdir -p sortie
+          ls -la upstream/app/build/outputs/apk/debug/
+          APK=$(ls upstream/app/build/outputs/apk/debug/*universal*.apk 2>/dev/null | head -1)
+          [ -n "$APK" ] || APK=$(ls upstream/app/build/outputs/apk/debug/*.apk | head -1)
+          cp "$APK" sortie/reo-fenua.apk
+
+      - name: Garder l'APK (onglet Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: reo-fenua-apk
+          path: sortie/reo-fenua.apk
+
+      - name: Publier dans Releases (lien de téléchargement direct)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$(date +%Y.%m.%d)-${{ github.run_number }}"
+          gh release create "$TAG" sortie/*.apk \
+            --repo "${{ github.repository }}" \
+            --title "Reo Fenua $TAG" \
+            --notes "APK de test Reo Fenua. Sur le téléphone : ouvrir reo-fenua.apk et autoriser l'installation d'applications inconnues. Désinstaller BitChat avant s'il est déjà installé."
