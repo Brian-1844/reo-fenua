@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reo Fenua – prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--ocean:#0B3C5D;--lagon:#0E7C86;--sable:#F7EFE2;--rouge:#C8102E;--vanille:#E8B33A;--texte:#1B2A33;--doux:#3D5260;--ligne:#E6DCCB;--blanc:#FFFFFF}
+*{box-sizing:border-box}
+body{margin:0;background:#DCD2C2;font-family:'Nunito',system-ui,sans-serif;color:var(--texte);display:flex;justify-content:center}
+.app{width:100%;max-width:430px;min-height:100vh;background:var(--sable);display:flex;flex-direction:column}
+.ecran{display:none;flex-direction:column;flex:1}
+.ecran.actif{display:flex}
+header{color:var(--blanc);padding:22px 16px 18px;display:flex;align-items:center;gap:12px}
+header h1{margin:0;font-size:24px}
+header small{display:block;font-size:15px;font-weight:600;opacity:.9}
+.motif{display:block;width:100%;height:16px;background:var(--ocean)}
+button,.btn{font-family:inherit;border:none;cursor:pointer;text-decoration:none}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--vanille);outline-offset:2px}
+.retour{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;justify-content:center}
+.contenu{padding:18px;display:flex;flex-direction:column;gap:16px;flex:1}
+.carte{background:var(--blanc);border-radius:20px;padding:16px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(11,60,93,.1)}
+.grille{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.gros{height:118px;border-radius:22px;color:#fff;font-size:20px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.titre{font-size:18px;font-weight:800;color:var(--ocean);margin:0}
+.groupe{background:#fff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:14px;width:100%;text-align:left;color:var(--texte)}
+.avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0}
+nav{background:#fff;border-top:1px solid var(--ligne);display:grid;grid-template-columns:repeat(3,1fr);padding:8px 8px 18px;position:sticky;bottom:0}
+nav button{background:none;color:var(--doux);font-size:15px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:52px}
+nav button[aria-current="page"]{color:var(--ocean);font-weight:800}
+.fil{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px}
+.bulle{max-width:80%;padding:12px 14px;font-size:18px;line-height:1.4;border-radius:4px 20px 20px 20px;background:#fff}
+.moi{align-self:flex-end;background:var(--ocean);color:#fff;border-radius:20px 4px 20px 20px}
+.nom{font-size:14px;font-weight:800;color:#8A3B12;display:block;margin-bottom:4px}
+.saisie{background:#fff;border-top:1px solid var(--ligne);padding:12px 12px 20px;display:flex;flex-direction:column;gap:10px;position:sticky;bottom:0}
+.ligne{display:flex;gap:10px;align-items:center}
+.rond{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+input[type=text]{flex:1;height:52px;border:2px solid #C9BBA4;border-radius:26px;padding:0 18px;font-size:18px;font-family:inherit;background:#FBF7F0;color:var(--texte);min-width:0}
+.parler{height:60px;border-radius:30px;background:var(--lagon);color:#fff;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px}
+.parler.actif{background:var(--rouge)}
+.sos{height:190px;border:6px solid #F4B5BF;border-radius:32px;background:var(--rouge);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.besoin{height:64px;border:2px solid var(--lagon);border-radius:18px;background:#fff;color:var(--ocean);font-size:18px;font-weight:800}
+.besoin[aria-pressed="true"]{background:var(--lagon);color:#fff}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--texte);color:#fff;padding:12px 18px;border-radius:14px;font-size:16px;font-weight:700;display:none;max-width:90%}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ACCUEIL -->
+<section class="ecran actif" id="accueil" aria-label="Accueil">
+<header style="background:var(--ocean);flex-direction:column;align-items:flex-start;gap:4px;padding:26px 22px 18px">
+<h1 style="font-size:30px">Ia ora na</h1><small>Reo Fenua · sans internet</small>
+</header>
+<svg class="motif" aria-hidden="true" viewBox="0 0 390 16" preserveAspectRatio="none"><path d="M0 16 L13 2 L26 16 L39 2 L52 16 L65 2 L78 16 L91 2 L104 16 L117 2 L130 16 L143 2 L156 16 L169 2 L182 16 L195 2 L208 16 L221 2 L234 16 L247 2 L260 16 L273 2 L286 16 L299 2 L312 16 L325 2 L338 16 L351 2 L364 16 L377 2 L390 16 Z" fill="#F7EFE2"/></svg>
+<div class="contenu">
+<div class="carte">
+<div class="avatar" style="width:56px;height:56px;background:var(--lagon)"><svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg></div>
+<div><div style="font-size:20px;font-weight:800">12 personnes autour</div><div style="font-size:16px;color:var(--doux)">Réseau actif · 3 relais</div></div>
+</div>
+<div class="grille">
+<button class="gros" style="background:var(--lagon)" data-aller="discussion">Écrire</button>
+<button class="gros" style="background:var(--ocean)" data-aller="discussion">Parler</button>
+<button class="gros" style="background:var(--vanille);color:var(--texte)" data-aller="discussion">Photo</button>
+<button class="gros" style="background:var(--rouge)" data-aller="secours">SOS</button>
+</div>
+<h2 class="titre">Mes groupes</h2>
+<button class="groupe" data-aller="discussion"><span class="avatar" style="background:#F3D9C4;color:#8A3B12">F</span><span style="flex:1"><b style="font-size:18px;display:block">Famille</b><span style="font-size:15px;color:var(--doux)">Tout le monde va bien ?</span></span></button>
+<button class="groupe" data-aller="discussion"><span class="avatar" style="background:#D7ECEE;color:var(--ocean)">Q</span><span style="flex:1"><b style="font-size:18px;display:block">Mon quartier</b><span style="font-size:15px;color:var(--doux)">Route coupée près du pont</span></span></button>
+</div>
+</section>
+
+<!-- DISCUSSION -->
+<section class="ecran" id="discussion" aria-label="Discussion">
+<header style="background:var(--lagon)">
+<button class="retour" data-aller="accueil" aria-label="Retour"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+<div><h1>Famille</h1><small>5 proches · relayé par 3 téléphones</small></div>
+</header>
+<div class="fil" id="fil" aria-live="polite">
+<div><span class="nom">Mama</span><div class="bulle">Tout le monde va bien ? Le courant est coupé ici.</div></div>
+<div class="bulle moi">Oui, on est à la maison. On a de l'eau.</div>
+<div><span class="nom">Teva</span><div class="bulle">[ Photo ] Arbre tombé, route fermée</div></div>
+</div>
+<form class="saisie" id="form">
+<div class="ligne">
+<button type="button" class="rond" style="background:var(--vanille);color:var(--texte)" aria-label="Envoyer une photo" data-toast="Photo : choisir dans la galerie"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+<label for="msg" class="sr">Votre message</label>
+<input type="text" id="msg" placeholder="Écrire un message…" autocomplete="off">
+<button type="submit" class="rond" style="background:var(--ocean);color:#fff" aria-label="Envoyer"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 12l16-8-6 16-2-7z"/></svg></button>
+</div>
+<button type="button" class="parler" id="parler">Maintenir pour parler</button>
+</form>
+</section>
+
+<!-- SECOURS -->
+<section class="ecran" id="secours" aria-label="Secours">
+<header style="background:var(--rouge)">
+<button class="retour" data-aller="accueil" aria-label="Retour"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+<h1>Secours</h1>
+</header>
+<div class="contenu">
+<button class="sos" data-toast="Alerte envoyée aux téléphones proches"><span style="font-size:26px;font-weight:800">J'ai besoin d'aide</span><span style="font-size:16px;font-weight:600">Appuyer pour alerter</span></button>
+<button class="gros" style="height:72px;background:#2E7D32;flex-direction:row" data-toast="Message « en sécurité » envoyé">Je suis en sécurité</button>
+<h2 class="titre">Ce dont j'ai besoin</h2>
+<div class="grille">
+<button class="besoin" aria-pressed="false">Eau</button>
+<button class="besoin" aria-pressed="false">Soins</button>
+<button class="besoin" aria-pressed="false">Abri</button>
+<button class="besoin" aria-pressed="false">Nourriture</button>
+</div>
+<label class="carte" style="font-size:18px;font-weight:700"><input type="checkbox" checked style="width:26px;height:26px;accent-color:var(--lagon)"> Partager ma position</label>
+<p style="margin:0;font-size:16px;line-height:1.45;color:var(--doux)">Votre alerte passe de téléphone en téléphone jusqu'aux secours, même sans réseau.</p>
+</div>
+</section>
+
+<nav aria-label="Navigation principale">
+<button data-aller="accueil" aria-current="page">Accueil</button>
+<button data-aller="discussion">Messages</button>
+<button data-aller="secours">Secours</button>
+</nav>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// Prototype visuel uniquement : aucun envoi réel. Le vrai réseau maillé est dans l'app Android.
+const toast = t => { const e = document.getElementById('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(() => e.style.display = 'none', 2200); };
+document.querySelectorAll('[data-aller]').forEach(b => b.addEventListener('click', () => {
+  const id = b.dataset.aller;
+  document.querySelectorAll('.ecran').forEach(s => s.classList.toggle('actif', s.id === id));
+  document.querySelectorAll('nav button').forEach(n => {
+    if (n.dataset.aller === id) n.setAttribute('aria-current', 'page'); else n.removeAttribute('aria-current');
+  });
+  window.scrollTo(0, 0);
+}));
+document.querySelectorAll('[data-toast]').forEach(b => b.addEventListener('click', () => toast(b.dataset.toast)));
+document.querySelectorAll('.besoin').forEach(b => b.addEventListener('click', () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true')));
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const i = document.getElementById('msg'); if (!i.value.trim()) return;
+  const d = document.createElement('div'); d.className = 'bulle moi'; d.textContent = i.value;
+  document.getElementById('fil').appendChild(d); i.value = ''; toast('Message relayé par 3 téléphones');
+});
+const p = document.getElementById('parler');
+const on = () => { p.classList.add('actif'); p.textContent = 'Enregistrement…'; };
+const off = () => { if (!p.classList.contains('actif')) return; p.classList.remove('actif'); p.textContent = 'Maintenir pour parler'; toast('Message vocal envoyé'); };
+p.addEventListener('pointerdown', on); p.addEventListener('pointerup', off); p.addEventListener('pointerleave', off);
+</script>
+</body>
+</html>
