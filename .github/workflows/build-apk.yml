@@ -529,6 +529,118 @@ jobs:
           checking	Vérification…
           apk_not_ready_please_prepare_it_first	Application pas prête. Préparez-la d'abord.
           '''
+          FR_FRIENDLY = r'''permissions_header	Quelques autorisations
+          privacy_first	Votre vie privée d'abord
+          privacy_protected	Votre vie privée est respectée
+          privacy_bullets	• Pas de compte, pas de numéro de téléphone\n• Personne ne suit où vous êtes\n• Les messages passent de téléphone en téléphone, sans internet
+          grant_permissions	C'est parti !
+          continue_btn	Continuer
+          skip	Plus tard
+          try_again	Réessayer
+          check_again	Vérifier encore
+          open_settings	Ouvrir les réglages
+          setup_not_complete	Presque prêt…
+          should_take_seconds	Juste quelques secondes…
+          initializing_mesh_network	Préparation de Reo Fenua
+          setting_up_bluetooth	On prépare la connexion avec les téléphones proches…
+          perm_type_nearby_devices	Téléphones à proximité
+          perm_nearby_devices_desc	Pour trouver les téléphones autour de vous et leur envoyer vos messages
+          perm_nearby_devices_system	Autoriser Reo Fenua à se connecter aux téléphones proches
+          perm_type_precise_location	Localisation
+          perm_location_desc	Android l'exige pour chercher les téléphones proches. Reo Fenua ne regarde jamais où vous êtes.
+          perm_location_system	Nécessaire pour trouver les téléphones proches
+          perm_type_notifications	Notifications
+          perm_notifications_desc	Pour être prévenu quand vous recevez un message
+          perm_notifications_system	Autoriser Reo Fenua à vous prévenir des nouveaux messages
+          perm_type_microphone	Micro
+          perm_type_battery_optimization	Batterie
+          perm_battery_desc	Pour que Reo Fenua continue de recevoir vos messages quand l'écran est éteint
+          perm_battery_system	Laisser Reo Fenua fonctionner en arrière-plan
+          perm_type_other	Autre
+          perm_type_background_location	Fonctionner écran éteint
+          perm_background_location_desc	Pour recevoir les messages même quand l'application est fermée (conseillé)
+          perm_background_location_system	Autoriser tout le temps
+          permission_bluetooth_rationale	Le Bluetooth sert à parler aux téléphones proches, sans internet.
+          permission_location_rationale	Android demande la localisation pour trouver les téléphones proches. Votre position n'est jamais utilisée.
+          permission_notification_rationale	Les notifications vous préviennent quand un message arrive.
+          bluetooth_recommended	Allumez le Bluetooth
+          bluetooth_needs_for	Le Bluetooth permet à Reo Fenua de :
+          bluetooth_needs_bullets	• Trouver les personnes autour de vous\n• Envoyer et recevoir des messages\n• Marcher sans internet ni réseau téléphone
+          enable_bluetooth	Allumer le Bluetooth
+          checking_bluetooth_status	On vérifie le Bluetooth…
+          bluetooth_not_supported	Bluetooth non compatible
+          bluetooth_unsupported_explanation	Désolé, ce téléphone n'a pas le Bluetooth nécessaire pour Reo Fenua.\n\nReo Fenua a besoin du Bluetooth pour parler aux téléphones proches sans internet.
+          location_services_required	Allumez la localisation
+          location_needs_for	Android demande la localisation pour :
+          location_needs_bullets	• Chercher les téléphones proches en Bluetooth\n• Vous montrer qui est autour de vous\n• Reo Fenua ne suit jamais où vous êtes
+          location_explanation	Reo Fenua ne regarde PAS où vous êtes.\n\nAndroid oblige simplement à allumer la localisation pour pouvoir chercher les téléphones proches.
+          open_location_settings	Allumer la localisation
+          checking_location_services	On vérifie la localisation…
+          location_services_unavailable	Localisation indisponible
+          location_unavailable_explanation	Ce téléphone n'a pas de localisation, ce qui est rare.\n\nAndroid en a besoin pour chercher les téléphones proches. Sans elle, Reo Fenua ne peut pas trouver les autres.
+          background_location_required_title	Recevoir les messages écran éteint
+          background_location_required_subtitle	Facultatif, mais conseillé
+          background_location_explanation	Pour que vos messages continuent d'arriver quand Reo Fenua est fermé, Android demande la localisation « tout le temps ».
+          background_location_settings_tip	Dans l'écran suivant, choisissez « Toujours autoriser ».
+          background_location_needs_for	Cela permet de :
+          background_location_needs_bullets	- Recevoir les messages application fermée\n- Se reconnecter tout seul après un redémarrage\n- Relayer les messages des voisins
+          background_location_privacy_note	Votre position n'est JAMAIS enregistrée ni envoyée.
+          grant_background_location	Oui, autoriser
+          skip_background_location	Non merci, continuer
+          battery_optimization_detected_title	Votre téléphone peut couper Reo Fenua
+          battery_optimization_enabled_title	Votre téléphone peut couper Reo Fenua
+          battery_optimization_explanation_short	Pour économiser la batterie, votre téléphone peut arrêter Reo Fenua quand l'écran est éteint. Vous risquez alors de manquer des messages.
+          benefits_of_disabling	En autorisant Reo Fenua :
+          battery_benefits_short	• Vos messages arrivent toujours\n• Vous aidez à relayer les messages des voisins\n• La connexion ne se coupe pas
+          disable_battery_optimization	Autoriser Reo Fenua
+          battery_optimization_skip	Plus tard
+          battery_optimization_disabled_title	C'est réglé !
+          battery_optimization_success_message	Reo Fenua peut fonctionner tranquillement en arrière-plan.
+          battery_optimization_not_required	Rien à régler
+          battery_optimization_not_supported_message	Votre téléphone n'a pas besoin de réglage. Reo Fenua marchera normalement.
+          cd_checking_battery_optimization	Vérification de la batterie
+          cd_battery_optimization	Batterie
+          cd_not_supported_battery_optimization	Aucun réglage nécessaire
+          cd_location_services	Localisation
+          cd_privacy	Vie privée
+          cd_privacy_protected	Vie privée respectée
+          cd_benefits	Avantages
+          location_channels_title	Choisir une discussion
+          mesh_label	Autour de moi
+          mesh_title	Autour de moi
+          mesh_section_subtitle	Les personnes près de vous. Marche sans internet.
+          location_bluetooth_subtitle	Bluetooth • %1$s
+          location_channels_heading	Discussions de mon quartier
+          location_channels_desc	Avec internet, parlez aux gens de votre rue, de votre quartier, de votre commune ou de votre île. Seule une zone approximative est partagée, jamais votre position exacte.
+          location_channels_nearby	Près de chez moi
+          enable_location_services	Allumer la localisation
+          disable_location_services	Couper l'accès à la localisation
+          location_permission_denied	La localisation est refusée. Ouvrez les réglages pour l'autoriser et voir les discussions de quartier.
+          geohash_placeholder	code d'un lieu
+          invalid_geohash	Ce code de lieu n'existe pas
+          teleport	Visiter
+          cd_teleported	Visité à distance
+          finding_nearby_channels	On cherche les discussions près de vous…
+          location_level_block	Ma rue
+          location_level_neighborhood	Mon quartier
+          location_level_city	Ma commune
+          location_level_province	Mon île
+          location_level_region	Mon archipel
+          cd_location_notes	Petits mots laissés ici
+          nearby_notes_reveal	Voir les petits mots laissés ici
+          nearby_notes_one	1 petit mot laissé ici — touchez pour le lire
+          nearby_notes_many	%d petits mots laissés ici — touchez pour les lire
+          location_notes_empty_title	Aucun petit mot pour le moment
+          loading_location_notes	Chargement…
+          location_notes_relays_unavailable	Pas d'internet : les petits mots sont en pause
+          about_network	Protection
+          location_tor_routing_title	Mode discret
+          location_tor_routing_desc	Cache votre connexion internet dans les discussions de quartier. Un peu plus lent.
+          bookmarked	Mes favoris
+          cd_add_bookmark	Ajouter aux favoris
+          cd_remove_bookmark	Retirer des favoris
+          cd_open_map	Ouvrir la carte
+          '''
           GUIDE_KT = r'''package com.bitchat.android.ui
 
           import android.content.Context
@@ -575,6 +687,20 @@ jobs:
           import androidx.compose.ui.unit.sp
           import androidx.compose.ui.window.Dialog
           import androidx.compose.ui.window.DialogProperties
+          import androidx.compose.foundation.layout.BoxScope
+          import androidx.compose.ui.semantics.contentDescription
+          import androidx.compose.ui.semantics.semantics
+          import androidx.compose.ui.unit.Dp
+          import androidx.compose.ui.zIndex
+          import android.net.Uri
+          import androidx.activity.compose.rememberLauncherForActivityResult
+          import androidx.activity.result.contract.ActivityResultContracts
+          import androidx.compose.foundation.interaction.MutableInteractionSource
+          import androidx.compose.foundation.interaction.collectIsPressedAsState
+          import androidx.compose.material.icons.Icons
+          import androidx.compose.material.icons.filled.Attachment
+          import androidx.compose.material3.Icon
+          import androidx.compose.ui.draw.rotate
 
           /** Reo Fenua : introduction au premier lancement et rubrique d'aide. */
           object ReoFenuaGuide {
@@ -643,15 +769,15 @@ jobs:
               ),
               HelpItem(
                   "Qui peut lire mes messages ?",
-                  "Les messages écrits dans « mesh » sont lus par tous ceux qui sont autour. Pour un message privé et chiffré, touchez l'icône des personnes en haut, choisissez quelqu'un, puis écrivez-lui."
+                  "Les messages écrits dans « Autour de moi » sont lus par tous ceux qui sont autour. Pour un message privé et chiffré, touchez l'icône des personnes en haut, choisissez quelqu'un, puis écrivez-lui."
               ),
               HelpItem(
                   "Comment changer mon nom ?",
                   "Touchez votre nom en haut de l'écran (par exemple @anon1234) et tapez le nom que vous voulez."
               ),
               HelpItem(
-                  "Comment envoyer une photo ou un message vocal ?",
-                  "Touchez l'appareil photo pour une photo. Pour un message vocal, gardez le doigt appuyé sur le micro pendant que vous parlez, puis relâchez."
+                  "Comment envoyer une photo, un fichier ou un vocal ?",
+                  "Photo : touchez l'appareil photo (appui long pour en prendre une). Document ou vidéo : touchez le trombone (10 Mo maximum). Message vocal : gardez le doigt appuyé sur le micro pendant que vous parlez, puis relâchez."
               ),
               HelpItem(
                   "Comment partager l'application ?",
@@ -765,6 +891,11 @@ jobs:
                                   )
                               }
                           }
+                          NihoManoBand(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .height(14.dp)
+                          )
 
                           Column(
                               modifier = Modifier
@@ -888,12 +1019,586 @@ jobs:
                       }
                       Spacer(modifier = Modifier.height(12.dp))
                       Button(
+                          onClick = { ReoFenuaSteps.show.value = true },
+                          modifier = Modifier
+                              .fillMaxWidth()
+                              .heightIn(min = 52.dp)
+                      ) {
+                          Text(text = "Mode d'emploi pas à pas", fontSize = 17.sp, textAlign = TextAlign.Center)
+                      }
+                      Spacer(modifier = Modifier.height(8.dp))
+                      OutlinedButton(
                           onClick = { ReoFenuaGuide.showIntro.value = true },
                           modifier = Modifier
                               .fillMaxWidth()
                               .heightIn(min = 52.dp)
                       ) {
                           Text(text = "Revoir l'introduction", fontSize = 17.sp, textAlign = TextAlign.Center)
+                      }
+                  }
+              }
+          }
+
+
+          // ===================== Mode d'emploi pas à pas =====================
+
+          private class Step(val title: String, val body: String)
+
+          private val guideSteps = listOf(
+              Step("Choisir votre nom",
+                  "En haut à gauche, touchez votre nom (par exemple @anon1234).\n\nTapez le nom que vous voulez, puis validez. C'est ce nom que les autres verront."),
+              Step("Voir qui est autour",
+                  "En haut à droite, le chiffre à côté des deux personnes montre combien de téléphones avec Reo Fenua sont près de vous.\n\nTouchez-le pour voir la liste."),
+              Step("Écrire à tout le monde",
+                  "En bas, touchez « écrire un message… », tapez votre texte, puis touchez la flèche pour envoyer.\n\nTout le monde autour de vous le reçoit."),
+              Step("Écrire à une seule personne",
+                  "Touchez les deux personnes en haut à droite, puis choisissez quelqu'un dans la liste.\n\nVotre message privé est chiffré : seule cette personne peut le lire."),
+              Step("Envoyer une photo",
+                  "Touchez le bouton de l'appareil photo pour choisir une photo dans votre galerie.
+
+          Pour prendre une photo tout de suite, gardez le doigt appuyé sur ce bouton."),
+              Step("Envoyer un document ou une vidéo",
+                  "Touchez le trombone, à gauche de l'appareil photo, puis choisissez votre fichier : PDF, Word, vidéo…
+
+          Taille maximum : environ 10 Mo. Les petits fichiers arrivent plus vite et plus loin."),
+              Step("Envoyer un message vocal",
+                  "Gardez le doigt appuyé sur le bouton jaune du micro, parlez, puis relâchez. Le message part tout seul."),
+              Step("Changer de discussion",
+                  "Touchez « Autour de moi » en haut pour choisir une discussion.\n\n« Autour de moi » = les personnes près de vous, sans internet. Avec internet, vous pouvez aussi parler à votre quartier ou votre commune."),
+              Step("Partager l'application",
+                  "Touchez le logo en haut à gauche, puis « Réglages » et « Partager Reo Fenua ».\n\nPlus il y a de téléphones, plus les messages vont loin."),
+              Step("Besoin d'aide ?",
+                  "Touchez le logo en haut à gauche pour l'aide, les mises à jour et le fond d'écran.\n\nCe bouton « ? » vous ramène toujours à ce mode d'emploi.")
+          )
+
+          object ReoFenuaSteps {
+              val show = mutableStateOf(false)
+          }
+
+          @Composable
+          fun ReoFenuaStepsDialog(onDone: () -> Unit) {
+              var index by remember { mutableStateOf(0) }
+              val last = guideSteps.size - 1
+              val step = guideSteps[index]
+
+              Dialog(
+                  onDismissRequest = onDone,
+                  properties = DialogProperties(usePlatformDefaultWidth = false)
+              ) {
+                  Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                      Column(modifier = Modifier.fillMaxSize()) {
+                          Row(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .background(Lagon)
+                                  .padding(start = 24.dp, end = 8.dp, top = 36.dp, bottom = 16.dp),
+                              verticalAlignment = Alignment.CenterVertically
+                          ) {
+                              Text(
+                                  text = "Mode d'emploi",
+                                  fontSize = 24.sp,
+                                  fontWeight = FontWeight.Bold,
+                                  color = Color.White,
+                                  modifier = Modifier.weight(1f)
+                              )
+                              TextButton(onClick = onDone) {
+                                  Text(text = "Fermer", fontSize = 17.sp, color = Color.White)
+                              }
+                          }
+
+                          NihoManoBand(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .height(14.dp),
+                              color = Ocean,
+                              accent = Vanille
+                          )
+                          Column(
+                              modifier = Modifier
+                                  .weight(1f)
+                                  .fillMaxWidth()
+                                  .verticalScroll(rememberScrollState())
+                                  .padding(24.dp),
+                              verticalArrangement = Arrangement.spacedBy(18.dp)
+                          ) {
+                              Box(
+                                  modifier = Modifier
+                                      .size(72.dp)
+                                      .background(Vanille, CircleShape),
+                                  contentAlignment = Alignment.Center
+                              ) {
+                                  Text(
+                                      text = (index + 1).toString(),
+                                      fontSize = 34.sp,
+                                      fontWeight = FontWeight.Bold,
+                                      color = Ocean
+                                  )
+                              }
+                              Text(
+                                  text = "Étape " + (index + 1) + " sur " + guideSteps.size,
+                                  fontSize = 16.sp,
+                                  color = MaterialTheme.colorScheme.onSurfaceVariant
+                              )
+                              Text(
+                                  text = step.title,
+                                  fontSize = 28.sp,
+                                  fontWeight = FontWeight.Bold,
+                                  color = MaterialTheme.colorScheme.primary
+                              )
+                              Text(
+                                  text = step.body,
+                                  fontSize = 19.sp,
+                                  lineHeight = 28.sp,
+                                  color = MaterialTheme.colorScheme.onBackground
+                              )
+                          }
+
+                          Row(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .padding(bottom = 12.dp),
+                              horizontalArrangement = Arrangement.Center
+                          ) {
+                              for (i in guideSteps.indices) {
+                                  Box(
+                                      modifier = Modifier
+                                          .padding(horizontal = 4.dp)
+                                          .size(if (i == index) 11.dp else 8.dp)
+                                          .background(
+                                              color = if (i == index) Lagon else MaterialTheme.colorScheme.outline,
+                                              shape = CircleShape
+                                          )
+                                  )
+                              }
+                          }
+
+                          Row(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+                              horizontalArrangement = Arrangement.spacedBy(12.dp)
+                          ) {
+                              if (index > 0) {
+                                  OutlinedButton(
+                                      onClick = { index -= 1 },
+                                      modifier = Modifier
+                                          .weight(1f)
+                                          .heightIn(min = 56.dp)
+                                  ) {
+                                      Text(text = "Retour", fontSize = 18.sp)
+                                  }
+                              }
+                              Button(
+                                  onClick = { if (index < last) index += 1 else onDone() },
+                                  modifier = Modifier
+                                      .weight(1f)
+                                      .heightIn(min = 56.dp)
+                              ) {
+                                  Text(text = if (index < last) "Suivant" else "J'ai compris", fontSize = 18.sp)
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+
+          object ReoFenuaUpdateDialog {
+              val show = mutableStateOf(false)
+          }
+
+          /** Boutons ronds sur l'écran principal : « ? » (mode d'emploi) et flèche (mise à jour). */
+          @Composable
+          fun BoxScope.ReoFenuaHelpButton(topPadding: Dp) {
+              Column(
+                  modifier = Modifier
+                      .align(Alignment.TopEnd)
+                      .zIndex(10f)
+                      .padding(top = topPadding, end = 14.dp),
+                  verticalArrangement = Arrangement.spacedBy(10.dp)
+              ) {
+                  Box(
+                      modifier = Modifier
+                          .size(52.dp)
+                          .background(Vanille, CircleShape)
+                          .clickable { ReoFenuaSteps.show.value = true }
+                          .semantics { contentDescription = "Mode d'emploi" },
+                      contentAlignment = Alignment.Center
+                  ) {
+                      Text(text = "?", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Ocean)
+                  }
+                  Box(
+                      modifier = Modifier
+                          .size(52.dp)
+                          .background(Lagon, CircleShape)
+                          .clickable { ReoFenuaUpdateDialog.show.value = true }
+                          .semantics { contentDescription = "Mise à jour" },
+                      contentAlignment = Alignment.Center
+                  ) {
+                      Canvas(modifier = Modifier.size(24.dp)) {
+                          val s = size.width
+                          val stroke = s * 0.12f
+                          drawLine(Color.White, Offset(s / 2f, s * 0.08f), Offset(s / 2f, s * 0.68f), strokeWidth = stroke)
+                          drawLine(Color.White, Offset(s * 0.22f, s * 0.42f), Offset(s / 2f, s * 0.7f), strokeWidth = stroke)
+                          drawLine(Color.White, Offset(s * 0.78f, s * 0.42f), Offset(s / 2f, s * 0.7f), strokeWidth = stroke)
+                          drawLine(Color.White, Offset(s * 0.12f, s * 0.92f), Offset(s * 0.88f, s * 0.92f), strokeWidth = stroke)
+                      }
+                  }
+              }
+              if (ReoFenuaSteps.show.value) {
+                  ReoFenuaStepsDialog(onDone = { ReoFenuaSteps.show.value = false })
+              }
+              if (ReoFenuaUpdateDialog.show.value) {
+                  Dialog(onDismissRequest = { ReoFenuaUpdateDialog.show.value = false }) {
+                      Surface(
+                          color = MaterialTheme.colorScheme.background,
+                          shape = MaterialTheme.shapes.extraLarge
+                      ) {
+                          Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                              ReoFenuaUpdateCard()
+                              Row(
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .padding(end = 16.dp),
+                                  horizontalArrangement = Arrangement.End
+                              ) {
+                                  TextButton(onClick = { ReoFenuaUpdateDialog.show.value = false }) {
+                                      Text(text = "Fermer", fontSize = 17.sp)
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+
+          // ===================== Fond d'écran =====================
+
+          object ReoFenuaWallpaper {
+              private const val PREFS = "reo_fenua_guide"
+              private const val KEY = "wallpaper"
+              val names = listOf("Aucun", "Lagon", "Vagues", "Tiare")
+              val choice = mutableStateOf(-1)
+
+              fun load(context: Context) {
+                  if (choice.value < 0) {
+                      choice.value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY, 1)
+                  }
+              }
+
+              fun save(context: Context, value: Int) {
+                  choice.value = value
+                  context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY, value).apply()
+              }
+          }
+
+          /** Fond d'écran dessiné derrière les messages, très léger pour garder le texte lisible. */
+          @Composable
+          fun BoxScope.ReoFenuaWallpaperLayer() {
+              val context = LocalContext.current
+              LaunchedEffect(Unit) { ReoFenuaWallpaper.load(context) }
+              val choice = ReoFenuaWallpaper.choice.value
+              if (choice <= 0) return
+
+              Canvas(modifier = Modifier.matchParentSize()) {
+                  val w = size.width
+                  val h = size.height
+                  when (choice) {
+                      1 -> {
+                          drawCircle(color = Vanille.copy(alpha = 0.25f), radius = w * 0.12f, center = Offset(w * 0.8f, h * 0.55f))
+                          val top = h * 0.62f
+                          val montagnes = Path().apply {
+                              moveTo(0f, h * 0.78f)
+                              lineTo(w * 0.15f, top + h * 0.06f)
+                              lineTo(w * 0.27f, top + h * 0.1f)
+                              lineTo(w * 0.42f, top)
+                              lineTo(w * 0.58f, top + h * 0.09f)
+                              lineTo(w * 0.7f, top + h * 0.05f)
+                              lineTo(w * 0.92f, h * 0.78f)
+                              close()
+                          }
+                          drawPath(path = montagnes, color = Ocean.copy(alpha = 0.14f))
+                          drawRect(color = Lagon.copy(alpha = 0.16f), topLeft = Offset(0f, h * 0.77f), size = Size(w, h * 0.23f))
+                          for (row in 0 until 4) {
+                              val y = h * (0.8f + row * 0.05f)
+                              val vague = Path().apply {
+                                  moveTo(0f, y)
+                                  var x = 0f
+                                  val step = w / 6f
+                                  while (x < w) {
+                                      quadraticTo(x + step / 4f, y - h * 0.012f, x + step / 2f, y)
+                                      quadraticTo(x + step * 3f / 4f, y + h * 0.012f, x + step, y)
+                                      x += step
+                                  }
+                                  lineTo(w, y + h * 0.006f)
+                                  lineTo(0f, y + h * 0.006f)
+                                  close()
+                              }
+                              drawPath(path = vague, color = LagonClair.copy(alpha = 0.22f))
+                          }
+                      }
+                      2 -> {
+                          var y = h * 0.08f
+                          while (y < h) {
+                              val vague = Path().apply {
+                                  moveTo(0f, y)
+                                  var x = 0f
+                                  val step = w / 5f
+                                  while (x < w) {
+                                      quadraticTo(x + step / 4f, y - h * 0.015f, x + step / 2f, y)
+                                      quadraticTo(x + step * 3f / 4f, y + h * 0.015f, x + step, y)
+                                      x += step
+                                  }
+                                  lineTo(w, y + h * 0.005f)
+                                  lineTo(0f, y + h * 0.005f)
+                                  close()
+                              }
+                              drawPath(path = vague, color = Lagon.copy(alpha = 0.10f))
+                              y += h * 0.09f
+                          }
+                      }
+                      else -> {
+                          val cell = w / 4f
+                          var row = 0
+                          var y = cell * 0.6f
+                          while (y < h) {
+                              var x = if (row % 2 == 0) cell * 0.5f else cell
+                              while (x < w + cell) {
+                                  val r = cell * 0.13f
+                                  for (p in 0 until 5) {
+                                      val a = Math.toRadians(p * 72.0 - 90.0)
+                                      drawCircle(
+                                          color = Lagon.copy(alpha = 0.10f),
+                                          radius = r,
+                                          center = Offset(x + (r * 1.1f * Math.cos(a)).toFloat(), y + (r * 1.1f * Math.sin(a)).toFloat())
+                                      )
+                                  }
+                                  drawCircle(color = Vanille.copy(alpha = 0.35f), radius = r * 0.55f, center = Offset(x, y))
+                                  x += cell
+                              }
+                              y += cell * 0.9f
+                              row += 1
+                          }
+                      }
+                  }
+              }
+          }
+
+          /** Carte de choix du fond d'écran, dans l'écran d'information. */
+          @Composable
+          fun ReoFenuaWallpaperCard() {
+              val context = LocalContext.current
+              LaunchedEffect(Unit) { ReoFenuaWallpaper.load(context) }
+              val current = ReoFenuaWallpaper.choice.value
+
+              Surface(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 20.dp, vertical = 12.dp),
+                  color = MaterialTheme.colorScheme.surface,
+                  shape = MaterialTheme.shapes.large
+              ) {
+                  Column(
+                      modifier = Modifier.padding(16.dp),
+                      verticalArrangement = Arrangement.spacedBy(10.dp)
+                  ) {
+                      Text(
+                          text = "Fond d'écran",
+                          fontSize = 20.sp,
+                          fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.primary
+                      )
+                      for (rowStart in listOf(0, 2)) {
+                          Row(
+                              modifier = Modifier.fillMaxWidth(),
+                              horizontalArrangement = Arrangement.spacedBy(10.dp)
+                          ) {
+                              for (i in rowStart until rowStart + 2) {
+                                  val name = ReoFenuaWallpaper.names[i]
+                                  if (i == current) {
+                                      Button(
+                                          onClick = { ReoFenuaWallpaper.save(context, i) },
+                                          modifier = Modifier
+                                              .weight(1f)
+                                              .heightIn(min = 52.dp)
+                                      ) {
+                                          Text(text = "✓ " + name, fontSize = 17.sp)
+                                      }
+                                  } else {
+                                      OutlinedButton(
+                                          onClick = { ReoFenuaWallpaper.save(context, i) },
+                                          modifier = Modifier
+                                              .weight(1f)
+                                              .heightIn(min = 52.dp)
+                                      ) {
+                                          Text(text = name, fontSize = 17.sp)
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+
+
+          // ===================== Bouton « envoyer un fichier » =====================
+
+          /** Trombone à côté de l'appareil photo : documents, PDF, vidéos… (jusqu'à environ 10 Mo). */
+          @Composable
+          fun ReoFenuaFileButton(onFileReady: (String) -> Unit) {
+              val context = LocalContext.current
+              val picker = rememberLauncherForActivityResult(
+                  contract = ActivityResultContracts.OpenDocument()
+              ) { uri: Uri? ->
+                  if (uri != null) {
+                      val path = com.bitchat.android.features.file.FileUtils.copyFileForSending(context, uri)
+                      if (!path.isNullOrBlank()) onFileReady(path)
+                  }
+              }
+              val interactionSource = remember { MutableInteractionSource() }
+              val isPressed by interactionSource.collectIsPressedAsState()
+
+              ComposerActionSurface(
+                  isActive = false,
+                  isPressed = isPressed,
+                  contentDescription = "Envoyer un fichier",
+                  modifier = Modifier.clickable(
+                      interactionSource = interactionSource,
+                      indication = null
+                  ) { picker.launch(arrayOf("*/*")) }
+              ) { tint ->
+                  Icon(
+                      imageVector = Icons.Filled.Attachment,
+                      contentDescription = null,
+                      tint = tint,
+                      modifier = Modifier
+                          .size(ComposerIconSize)
+                          .rotate(90f)
+                  )
+              }
+          }
+
+
+          // ===================== Motif tahitien et explication des discussions =====================
+
+          /** Bande de motif niho mano (dents de requin), motif traditionnel polynésien. */
+          @Composable
+          fun NihoManoBand(modifier: Modifier = Modifier, color: Color = Ocean, accent: Color = Lagon) {
+              Canvas(modifier = modifier) {
+                  val h = size.height
+                  val w = size.width
+                  val tooth = h * 1.2f
+                  var x = 0f
+                  var i = 0
+                  while (x < w) {
+                      val dent = Path().apply {
+                          moveTo(x, h)
+                          lineTo(x + tooth / 2f, 0f)
+                          lineTo(x + tooth, h)
+                          close()
+                      }
+                      drawPath(path = dent, color = if (i % 2 == 0) color else accent)
+                      x += tooth
+                      i += 1
+                  }
+              }
+          }
+
+          private class ChannelStep(val number: String, val title: String, val body: String)
+
+          private val channelSteps = listOf(
+              ChannelStep("1", "Autour de moi",
+                  "Pour parler aux personnes près de vous, sans internet. C'est le choix habituel."),
+              ChannelStep("2", "Discussions de mon quartier",
+                  "Si vous avez internet : touchez « Ma rue », « Mon quartier », « Ma commune » ou « Mon île » pour parler aux gens de cette zone."),
+              ChannelStep("3", "Visiter un autre lieu",
+                  "Tapez le code d'un lieu puis touchez « Visiter » pour voir sa discussion, même de loin.")
+          )
+
+          /** Carte d'explication pas à pas, en haut du menu « Choisir une discussion ». */
+          @Composable
+          fun ReoFenuaChannelsExplainer() {
+              val context = LocalContext.current
+              val prefs = remember { context.getSharedPreferences("reo_fenua_guide", Context.MODE_PRIVATE) }
+              var open by remember { mutableStateOf(!prefs.getBoolean("channels_help_hidden", false)) }
+
+              Surface(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 20.dp, vertical = 8.dp),
+                  color = MaterialTheme.colorScheme.surface,
+                  shape = MaterialTheme.shapes.extraLarge
+              ) {
+                  Column {
+                      NihoManoBand(
+                          modifier = Modifier
+                              .fillMaxWidth()
+                              .height(14.dp)
+                      )
+                      Column(
+                          modifier = Modifier
+                              .fillMaxWidth()
+                              .clickable { open = !open }
+                              .padding(16.dp)
+                      ) {
+                          Text(
+                              text = (if (open) "▾  " else "▸  ") + "Comment choisir ?",
+                              fontSize = 19.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = MaterialTheme.colorScheme.primary
+                          )
+                          if (!open) {
+                              Text(
+                                  text = "Touchez ici pour voir l'explication",
+                                  fontSize = 15.sp,
+                                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                  modifier = Modifier.padding(start = 22.dp, top = 2.dp)
+                              )
+                          }
+                      }
+                      if (open) {
+                          Column(
+                              modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                              verticalArrangement = Arrangement.spacedBy(14.dp)
+                          ) {
+                              for (step in channelSteps) {
+                                  Row(verticalAlignment = Alignment.Top) {
+                                      Box(
+                                          modifier = Modifier
+                                              .size(40.dp)
+                                              .background(Vanille, CircleShape),
+                                          contentAlignment = Alignment.Center
+                                      ) {
+                                          Text(text = step.number, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ocean)
+                                      }
+                                      Column(modifier = Modifier.padding(start = 14.dp)) {
+                                          Text(
+                                              text = step.title,
+                                              fontSize = 17.sp,
+                                              fontWeight = FontWeight.SemiBold,
+                                              color = MaterialTheme.colorScheme.onSurface
+                                          )
+                                          Text(
+                                              text = step.body,
+                                              fontSize = 16.sp,
+                                              lineHeight = 23.sp,
+                                              color = MaterialTheme.colorScheme.onSurfaceVariant
+                                          )
+                                      }
+                                  }
+                              }
+                              Button(
+                                  onClick = {
+                                      open = false
+                                      prefs.edit().putBoolean("channels_help_hidden", true).apply()
+                                  },
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .heightIn(min = 52.dp)
+                              ) {
+                                  Text(text = "J'ai compris", fontSize = 17.sp)
+                              }
+                          }
                       }
                   }
               }
@@ -951,6 +1656,11 @@ jobs:
                   if "\t" in line:
                       k, v = line.split("\t", 1)
                       fr[k] = esc(v)
+              # Textes des écrans de démarrage, réécrits en français simple et chaleureux
+              for line in FR_FRIENDLY.strip().splitlines():
+                  if "\t" in line:
+                      k, v = line.split("\t", 1)
+                      fr[k] = esc(v)
 
               missing = []
               def repl_str(m):
@@ -1003,10 +1713,22 @@ jobs:
           anchor = "    // About sheet\n"
           c = chat.read_text() if chat.exists() else ""
           if c.count(anchor) == 1:
-              chat.write_text(c.replace(anchor, "    // Reo Fenua : introduction\n    ReoFenuaIntroGate()\n\n" + anchor))
+              c = c.replace(anchor, "    // Reo Fenua : introduction\n    ReoFenuaIntroGate()\n\n" + anchor)
               print("Introduction ajoutée.")
           else:
               warn("Emplacement de l'introduction introuvable.")
+
+          # Fond d'écran (derrière) et boutons « ? » + mise à jour (devant) sur l'écran principal
+          anchor3 = "        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()\n"
+          if c.count(anchor3) == 1:
+              c = c.replace(anchor3, anchor3 +
+                  "        ReoFenuaWallpaperLayer()\n"
+                  "        ReoFenuaHelpButton(topPadding = statusBarHeight + headerHeight + 10.dp)\n")
+              print("Fond d'écran et boutons d'aide ajoutés.")
+          else:
+              warn("Emplacement du fond d'écran introuvable.")
+          if c:
+              chat.write_text(c)
 
           about = UI / "AboutSheet.kt"
           anchor2 = '                    item(key = "tabs") {'
@@ -1015,10 +1737,90 @@ jobs:
               about.write_text(a.replace(anchor2,
                   '                    item(key = "reo_help") {\n'
                   '                        ReoFenuaHelpCard()\n'
+                  '                    }\n\n'
+                  '                    item(key = "reo_wallpaper") {\n'
+                  '                        ReoFenuaWallpaperCard()\n'
                   '                    }\n\n' + anchor2))
               print("Rubrique Aide ajoutée.")
           else:
               warn("Emplacement de l'aide introuvable.")
+
+          # ---------- 3b. Bouton trombone pour envoyer documents et vidéos ----------
+          inp = UI / "InputComponents.kt"
+          old_btn = """                                ImagePickerButton(
+                                              onImageReady = { outPath ->
+                                                  onSendImageNote(
+                                                      latestSelectedPeer.value,
+                                                      latestChannel.value,
+                                                      outPath
+                                                  )
+                                              }
+                                          )
+          """
+          new_btn = """                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                              ReoFenuaFileButton(
+                                                  onFileReady = { path ->
+                                                      onSendFileNote(
+                                                          latestSelectedPeer.value,
+                                                          latestChannel.value,
+                                                          path
+                                                      )
+                                                  }
+                                              )
+                                              Spacer(Modifier.width(8.dp))
+                                              ImagePickerButton(
+                                                  onImageReady = { outPath ->
+                                                      onSendImageNote(
+                                                          latestSelectedPeer.value,
+                                                          latestChannel.value,
+                                                          outPath
+                                                      )
+                                                  }
+                                              )
+                                          }
+          """
+          t = inp.read_text() if inp.exists() else ""
+          if t.count(old_btn) == 1:
+              inp.write_text(t.replace(old_btn, new_btn))
+              print("Bouton d'envoi de fichiers ajouté.")
+          else:
+              warn("Emplacement du bouton fichier introuvable : bouton non ajouté.")
+
+          msm = UI / "MediaSendingManager.kt"
+          if msm.exists():
+              t = msm.read_text()
+              n = t.replace('"cannot send ${file.name}: file is too large (${sizeMb} MB, max $maxMb MB)"',
+                            '"impossible d\'envoyer ${file.name} : fichier trop lourd (${sizeMb} Mo, maximum $maxMb Mo)"')
+              if n != t:
+                  msm.write_text(n)
+
+          # ---------- 3c. Menu « Choisir une discussion » plus simple ----------
+          lcs = UI / "LocationChannelsSheet.kt"
+          t = lcs.read_text() if lcs.exists() else ""
+          anchor_lc = '                    item(key = "mesh_card") {'
+          if t.count(anchor_lc) == 1:
+              t = t.replace(anchor_lc,
+                  '                    item(key = "reo_channels_help") {\n'
+                  '                        ReoFenuaChannelsExplainer()\n'
+                  '                    }\n\n' + anchor_lc)
+              t = t.replace("stringResource(R.string.teleport).uppercase()", "stringResource(R.string.teleport)")
+              lcs.write_text(t)
+              print("Explication ajoutée au menu des discussions.")
+          else:
+              warn("Emplacement de l'explication des discussions introuvable.")
+
+          # Boutons arrondis, sans majuscules forcées
+          sec = UI / "AboutSections.kt"
+          t = sec.read_text() if sec.exists() else ""
+          i = t.find("fun SheetDestructiveButton")
+          if i >= 0:
+              j = t.find("\n}\n", i)
+              body = t[i:j]
+              nb = body.replace("text = text.uppercase(),", "text = text,") \
+                       .replace("shape = RoundedCornerShape(10.dp)", "shape = RoundedCornerShape(28.dp)") \
+                       .replace("letterSpacing = 0.8.sp", "letterSpacing = 0.sp")
+              sec.write_text(t[:i] + nb + t[j:])
+              print("Boutons arrondis.")
 
           # ---------- 4. Nouvelle icône ----------
           draw = RES / "drawable"
