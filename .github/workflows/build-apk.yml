@@ -1054,13 +1054,9 @@ jobs:
               Step("Écrire à une seule personne",
                   "Touchez les deux personnes en haut à droite, puis choisissez quelqu'un dans la liste.\n\nVotre message privé est chiffré : seule cette personne peut le lire."),
               Step("Envoyer une photo",
-                  "Touchez le bouton de l'appareil photo pour choisir une photo dans votre galerie.
-
-          Pour prendre une photo tout de suite, gardez le doigt appuyé sur ce bouton."),
+                  "Touchez le bouton de l'appareil photo pour choisir une photo dans votre galerie.\n\nPour prendre une photo tout de suite, gardez le doigt appuyé sur ce bouton."),
               Step("Envoyer un document ou une vidéo",
-                  "Touchez le trombone, à gauche de l'appareil photo, puis choisissez votre fichier : PDF, Word, vidéo…
-
-          Taille maximum : environ 10 Mo. Les petits fichiers arrivent plus vite et plus loin."),
+                  "Touchez le trombone, à gauche de l'appareil photo, puis choisissez votre fichier : PDF, Word, vidéo…\n\nTaille maximum : environ 10 Mo. Les petits fichiers arrivent plus vite et plus loin."),
               Step("Envoyer un message vocal",
                   "Gardez le doigt appuyé sur le bouton jaune du micro, parlez, puis relâchez. Le message part tout seul."),
               Step("Changer de discussion",
