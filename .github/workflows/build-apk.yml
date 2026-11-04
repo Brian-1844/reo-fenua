@@ -641,6 +641,49 @@ jobs:
           cd_remove_bookmark	Retirer des favoris
           cd_open_map	Ouvrir la carte
           '''
+          CODE_FR = r'''Nearby Devices	Téléphones à proximité
+          Precise Location	Localisation
+          Background Location	Fonctionner écran éteint
+          Microphone	Micro
+          Wi‑Fi Aware	Wi-Fi entre téléphones
+          Battery Optimization	Batterie
+          Other	Autre
+          Required to discover bitchat users via Bluetooth	Pour trouver les téléphones autour de vous et leur envoyer vos messages
+          Allow bitchat to connect to nearby devices	Autoriser Reo Fenua à se connecter aux téléphones proches
+          Required by Android to discover nearby bitchat users via Bluetooth	Android l'exige pour chercher les téléphones proches. Reo Fenua ne regarde jamais où vous êtes.
+          bitchat needs this to scan for nearby devices	Nécessaire pour trouver les téléphones proches
+          Enable Wi‑Fi Aware to discover and connect to nearby bitchat users over Wi‑Fi.	Pour envoyer photos et fichiers plus vite et plus loin, par Wi-Fi entre téléphones (sans internet).
+          Allow bitchat to discover nearby Wi‑Fi devices	Autoriser Reo Fenua à trouver les téléphones proches par Wi-Fi
+          Receive notifications when you receive private messages	Pour être prévenu quand vous recevez un message
+          Allow bitchat to send you notifications	Autoriser Reo Fenua à vous prévenir des nouveaux messages
+          Disable battery optimization to ensure bitchat runs reliably in the background and maintains mesh network connections	Pour que Reo Fenua continue de recevoir vos messages quand l'écran est éteint
+          Allow bitchat to run without battery restrictions	Laisser Reo Fenua fonctionner en arrière-plan
+          Bluetooth/Nearby Devices	Bluetooth / téléphones à proximité
+          Location (for Bluetooth scanning)	Localisation (pour trouver les téléphones)
+          Nearby Wi‑Fi Devices (for Wi‑Fi Aware)	Wi-Fi entre téléphones
+          Some permissions were denied:\n	Certaines autorisations ont été refusées :\n
+          \nbitchat may not work properly without all permissions.	\nReo Fenua risque de mal fonctionner sans elles.
+          Critical permissions were denied. bitchat requires these permissions to function:\n	Il manque des autorisations indispensables pour Reo Fenua :\n
+          \nPlease grant these permissions in Settings to use bitchat.	\nOuvrez les réglages du téléphone pour les autoriser, puis revenez dans Reo Fenua.
+          Some permissions were revoked. Please grant all permissions to continue.	Des autorisations ont été retirées. Autorisez-les à nouveau pour continuer.
+          Failed to initialize the app: ${e.message}	Reo Fenua n'a pas pu démarrer : ${e.message}
+          Location services are required for Bluetooth scanning on Android. Please enable location services to continue.	Android a besoin de la localisation allumée pour trouver les téléphones proches. Allumez-la pour continuer.
+          Location services have been disabled.	La localisation a été éteinte.
+          Failed to open location settings: ${e.message}	Impossible d'ouvrir les réglages de localisation : ${e.message}
+          Location services are not available on this device.	Ce téléphone n'a pas de localisation.
+          Location services are enabled and ready	La localisation est allumée
+          Location services are disabled. Please enable location services for Bluetooth scanning.	La localisation est éteinte. Allumez-la pour trouver les téléphones proches.
+          Bluetooth is required for bitchat to discover and connect to nearby users. Please enable Bluetooth to continue.	Reo Fenua a besoin du Bluetooth pour parler aux téléphones proches. Allumez-le pour continuer.
+          Bluetooth permissions are required before enabling Bluetooth. Please grant permissions first.	Autorisez d'abord Reo Fenua à utiliser le Bluetooth.
+          Failed to request Bluetooth enable: ${e.message}	Impossible d'allumer le Bluetooth : ${e.message}
+          This device doesn't support Bluetooth, which is required for bitchat to function.	Ce téléphone n'a pas le Bluetooth nécessaire pour Reo Fenua.
+          Bluetooth is enabled and ready	Le Bluetooth est allumé
+          Bluetooth is disabled. Please enable Bluetooth to use bitchat.	Le Bluetooth est éteint. Allumez-le pour utiliser Reo Fenua.
+          This device doesn't support Bluetooth.	Ce téléphone n'a pas le Bluetooth.
+          Unable to open battery optimization settings: ${e.message}	Impossible d'ouvrir les réglages de batterie : ${e.message}
+          Unable to open settings: ${e.message}	Impossible d'ouvrir les réglages : ${e.message}
+          Unable to open app settings: ${e.message}	Impossible d'ouvrir les réglages de l'application : ${e.message}
+          '''
           GUIDE_KT = r'''package com.bitchat.android.ui
 
           import android.content.Context
@@ -692,6 +735,11 @@ jobs:
           import androidx.compose.ui.semantics.semantics
           import androidx.compose.ui.unit.Dp
           import androidx.compose.ui.zIndex
+          import android.graphics.BitmapFactory
+          import androidx.compose.foundation.Image
+          import androidx.compose.ui.graphics.asImageBitmap
+          import androidx.compose.ui.layout.ContentScale
+          import java.io.File
           import android.net.Uri
           import androidx.activity.compose.rememberLauncherForActivityResult
           import androidx.activity.result.contract.ActivityResultContracts
@@ -1064,7 +1112,7 @@ jobs:
               Step("Partager l'application",
                   "Touchez le logo en haut à gauche, puis « Réglages » et « Partager Reo Fenua ».\n\nPlus il y a de téléphones, plus les messages vont loin."),
               Step("Besoin d'aide ?",
-                  "Touchez le logo en haut à gauche pour l'aide, les mises à jour et le fond d'écran.\n\nCe bouton « ? » vous ramène toujours à ce mode d'emploi.")
+                  "Touchez le logo en haut à gauche pour l'aide, les mises à jour et le fond d'écran (vous pouvez même mettre votre propre photo).\n\nCe bouton « ? » vous ramène toujours à ce mode d'emploi.")
           )
 
           object ReoFenuaSteps {
@@ -1272,8 +1320,11 @@ jobs:
           object ReoFenuaWallpaper {
               private const val PREFS = "reo_fenua_guide"
               private const val KEY = "wallpaper"
-              val names = listOf("Aucun", "Lagon", "Vagues", "Tiare")
+              val names = listOf("Aucun", "Lagon", "Vagues", "Tiare", "Ma photo")
               val choice = mutableStateOf(-1)
+              val photoVersion = mutableStateOf(0)
+
+              fun photoFile(context: Context): File = File(context.filesDir, "reo_wallpaper.jpg")
 
               fun load(context: Context) {
                   if (choice.value < 0) {
@@ -1294,6 +1345,29 @@ jobs:
               LaunchedEffect(Unit) { ReoFenuaWallpaper.load(context) }
               val choice = ReoFenuaWallpaper.choice.value
               if (choice <= 0) return
+
+              if (choice == 4) {
+                  val version = ReoFenuaWallpaper.photoVersion.value
+                  val photo = remember(version) {
+                      val f = ReoFenuaWallpaper.photoFile(context)
+                      if (f.exists()) BitmapFactory.decodeFile(f.absolutePath)?.asImageBitmap() else null
+                  }
+                  if (photo != null) {
+                      Image(
+                          bitmap = photo,
+                          contentDescription = null,
+                          contentScale = ContentScale.Crop,
+                          modifier = Modifier.matchParentSize()
+                      )
+                      // Voile clair par-dessus la photo pour que les messages restent lisibles
+                      Box(
+                          modifier = Modifier
+                              .matchParentSize()
+                              .background(MaterialTheme.colorScheme.background.copy(alpha = 0.62f))
+                      )
+                  }
+                  return
+              }
 
               Canvas(modifier = Modifier.matchParentSize()) {
                   val w = size.width
@@ -1386,6 +1460,27 @@ jobs:
               LaunchedEffect(Unit) { ReoFenuaWallpaper.load(context) }
               val current = ReoFenuaWallpaper.choice.value
 
+              val photoPicker = rememberLauncherForActivityResult(
+                  contract = ActivityResultContracts.GetContent()
+              ) { uri: Uri? ->
+                  if (uri != null) {
+                      val tmp = com.bitchat.android.features.media.ImageUtils.downscaleAndSaveToAppFiles(
+                          context, uri, maxDim = 1600, quality = 85
+                      )
+                      if (tmp != null) {
+                          try {
+                              val src = File(tmp)
+                              src.copyTo(ReoFenuaWallpaper.photoFile(context), overwrite = true)
+                              src.delete()
+                              ReoFenuaWallpaper.photoVersion.value += 1
+                              ReoFenuaWallpaper.save(context, 4)
+                          } catch (e: Exception) {
+                              // photo non enregistrée : on garde le fond actuel
+                          }
+                      }
+                  }
+              }
+
               Surface(
                   modifier = Modifier
                       .fillMaxWidth()
@@ -1430,6 +1525,25 @@ jobs:
                                       }
                                   }
                               }
+                          }
+                      }
+                      if (current == 4) {
+                          Button(
+                              onClick = { photoPicker.launch("image/*") },
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .heightIn(min = 52.dp)
+                          ) {
+                              Text(text = "✓ Ma photo — changer de photo", fontSize = 17.sp)
+                          }
+                      } else {
+                          OutlinedButton(
+                              onClick = { photoPicker.launch("image/*") },
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .heightIn(min = 52.dp)
+                          ) {
+                              Text(text = "Choisir ma photo dans la galerie", fontSize = 17.sp)
                           }
                       }
                   }
@@ -1689,6 +1803,23 @@ jobs:
               print(f"Application en français ({removed} autres langues retirées).")
           else:
               warn("Fichiers de textes introuvables : traduction ignorée.")
+
+          # ---------- 1b. Textes anglais écrits directement dans le code (écrans de démarrage) ----------
+          JAVA = pathlib.Path("app/src/main/java/com/bitchat/android")
+          code_files = list((JAVA / "onboarding").glob("*.kt")) + [JAVA / "MainActivity.kt"]
+          pairs = [l.split("\t", 1) for l in CODE_FR.strip().splitlines() if "\t" in l]
+          done = 0
+          for f in code_files:
+              if not f.exists():
+                  continue
+              t = f.read_text()
+              n = t
+              for en, frt in pairs:
+                  n = n.replace('"' + en + '"', '"' + frt + '"')
+              if n != t:
+                  f.write_text(n)
+                  done += 1
+          print(f"Textes du code traduits dans {done} fichiers.")
 
           # ---------- 2. Police plus lisible (au lieu de la police « machine à écrire ») ----------
           tokens = UI / "theme/ChatVisualTokens.kt"
