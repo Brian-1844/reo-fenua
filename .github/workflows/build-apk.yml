@@ -93,10 +93,20 @@ jobs:
               return p
           edit(T + "BitchatPalette.kt", palette)
 
-          # 2. Nom de l'application
-          edit("app/src/main/res/values/strings.xml", lambda s: re.sub(
-              r'<string name="app_name">[^<]*</string>',
-              '<string name="app_name">Reo Fenua</string>', s))
+          # 2. Nom de l'application (toutes les langues) et devise
+          TAGLINE = "La voix du fenua, même sans réseau"
+          for f in pathlib.Path("app/src/main/res").glob("values*/strings.xml"):
+              s = f.read_text()
+              n = re.sub(r'<string name="app_name">[^<]*</string>',
+                         '<string name="app_name">Reo Fenua</string>', s)
+              n = re.sub(r'<string name="about_tagline">[^<]*</string>',
+                         f'<string name="about_tagline">{TAGLINE}</string>', n)
+              if f.parent.name == "values-fr" and 'name="about_tagline"' not in n:
+                  n = n.replace("</resources>",
+                                f'    <string name="about_tagline">{TAGLINE}</string>\n</resources>')
+              if n != s:
+                  f.write_text(n)
+          print("Nom « Reo Fenua » appliqué dans toutes les langues.")
 
           # 3. Texte plus grand pour l'accessibilité (14 -> 17)
           edit("app/src/main/java/com/bitchat/android/util/AppConstants.kt", lambda s: re.sub(
@@ -286,6 +296,752 @@ jobs:
               print("Bouton de mise à jour ajouté à l'écran d'information.")
           else:
               print("::warning::Emplacement du bouton introuvable : bouton non ajouté.")
+          PY
+
+      - name: Français, introduction, aide, icône et écran lagon
+        working-directory: upstream
+        run: |
+          python3 - <<'PY'
+          import re, pathlib
+
+          def warn(msg):
+              print(f"::warning::{msg}")
+
+          RES = pathlib.Path("app/src/main/res")
+          UI = pathlib.Path("app/src/main/java/com/bitchat/android/ui")
+
+          FR_EXTRA = r'''cashu_pay_via	payer avec Cashu
+          cashu_payment_description	Paiement Cashu
+          cashu_copy_token	Copier le jeton
+          cashu_redeem_wallet	Encaisser dans le portefeuille
+          cashu_redeem_web	Encaisser sur le web
+          mesh_service_channel_name	Réseau en arrière-plan
+          mesh_service_channel_desc	Garde le réseau Bluetooth actif en arrière-plan
+          cd_favorite	Favori
+          cd_favorited_you	Vous a mis en favori
+          conversations	Conversations
+          offline_not_in_mesh	Hors ligne · pas dans le réseau
+          offline_reachable_via_nostr	Hors du réseau local · joignable par internet
+          delete	Supprimer
+          delete_conversation_action	Supprimer la conversation
+          delete_conversation_title	Supprimer la conversation ?
+          delete_conversation_message	Supprimer votre conversation avec %1$s de ce téléphone ?
+          search_conversations	Chercher une conversation
+          clear	Effacer
+          loading_conversations	Chargement des conversations privées…
+          conversation_storage_error	Impossible de charger les conversations privées
+          no_conversations_yet	Vos conversations privées apparaîtront ici
+          no_conversation_results	Aucune conversation trouvée
+          online_conversations	EN LIGNE
+          offline_conversations	HORS LIGNE
+          mark_read	Marquer comme lu
+          mark_unread	Marquer comme non lu
+          pin_conversation	Épingler
+          unpin_conversation	Désépingler
+          mute_conversation	Mettre en sourdine
+          unmute_conversation	Réactiver le son
+          conversation_actions	Actions sur la conversation
+          conversation_unread_count	%1$d messages non lus
+          conversation_read	Lu
+          conversation_draft_preview	Brouillon : %1$s
+          conversation_you_preview	Vous : %1$s
+          conversation_preview_timestamp	· %1$s
+          conversation_delete_failed	Impossible de supprimer la conversation
+          conversation_deleted	Conversation avec %1$s supprimée
+          undo	Annuler
+          conversation_restore_failed	Impossible de restaurer la conversation
+          notification_reply	Répondre
+          notification_mark_read	Marquer lu
+          notification_private_message	Nouveau message privé
+          notification_content_hidden	Ouvrez Reo Fenua pour le lire
+          notification_channel_direct_messages	Messages privés
+          notification_channel_direct_messages_description	Notifications des messages privés
+          notification_channel_geohash	Discussions par lieu
+          notification_channel_geohash_description	Notifications des mentions et messages dans les discussions par lieu
+          you	Vous
+          cd_location_notes	Notes du lieu
+          private_media_legacy_title	Envoyer sans chiffrement ?
+          private_media_legacy_body	%1$s ne peut pas être envoyé chiffré à %2$s car son application est trop ancienne. %3$s
+          private_media_legacy_send_once	Envoyer ce fichier une fois
+          panic_confirm_title	Tout effacer ?
+          panic_confirm_body	Cela efface définitivement votre identité, vos clés, vos messages et vos fichiers sur ce téléphone, puis crée une nouvelle identité. Impossible d'annuler.
+          panic_confirm_action	Effacer
+          system_panic_completed	tout est effacé — nouvelle identité créée
+          system_panic_incomplete	effacement incomplet — touchez 3 fois le logo pour réessayer.
+          cd_save_current_image	Enregistrer l'image
+          cd_close	Fermer
+          toast_image_saved	Image enregistrée dans Téléchargements
+          toast_failed_to_save_image	Impossible d'enregistrer l'image
+          cd_image_index_of	Image %1$d sur %2$d
+          cd_pick_file	Choisir un fichier
+          about_tagline	La voix du fenua, même sans réseau
+          about_tab_info	Infos
+          about_tab_settings	Réglages
+          about_how_to_use_heading	Mode d'emploi
+          about_howto_nickname	Touchez votre nom pour le changer
+          about_howto_channels	Touchez le nom du canal pour changer de canal
+          about_howto_people	Touchez l'icône des personnes pour voir qui est là
+          about_howto_bookmark	Ajoutez un canal en favori pour le garder
+          about_howto_mention	Tapez @ pour citer quelqu'un
+          about_howto_commands	Tapez / pour voir les commandes
+          about_howto_panic	Touchez 3 fois le logo pour tout effacer
+          about_section_about	À propos
+          about_section_theme	Apparence
+          about_section_settings	Réglages
+          about_no_tracking_title	Aucun pistage
+          about_no_tracking_desc	Pas de serveur, pas de compte, aucune donnée collectée.
+          about_ephemeral_title	Identité temporaire
+          about_ephemeral_desc	Un nouvel identifiant est créé régulièrement.
+          about_panic_desc	Touchez 3 fois le logo pour tout effacer immédiatement.
+          about_tor_title	Réseau Tor
+          about_difficulty	Difficulté
+          about_difficulty_value	%1$d bits • %2$s
+          about_tor_connected	Connecté (%1$d%%)
+          about_tor_disconnected	Déconnecté
+          chat_ui_matrix	Texte
+          chat_ui_bubbles	Bulles
+          cd_privacy_protected	Vie privée protégée
+          share_bitchat_title	Partager Reo Fenua
+          share_bitchat_subtitle	Partager le fichier d'installation, sans internet
+          share_apk_title	Partager l'application Reo Fenua
+          share_apk_explanation	Cela partage le fichier d'installation de Reo Fenua pour que d'autres l'installent sans internet. Plus il y a de téléphones, plus le réseau porte loin !
+          share_apk_receiver_instructions	La personne qui reçoit doit :\n• Autoriser « Installer des applis inconnues » dans les réglages Android\n• Désinstaller l'ancienne version si elle vient d'ailleurs (signatures différentes)
+          share_apk_confirm	Partager
+          share_apk_chooser_title	Partager Reo Fenua avec…
+          share_apk_error	Impossible de préparer l'application. Réessayez.
+          prepare_apk_title	Préparer l'application à partager
+          prepare_apk_ready_title	Application prête à partager sans internet
+          prepare_apk_subtitle	Télécharger la version universelle pour la partager
+          prepare_apk_status_not_downloaded	Pas prête • Touchez pour télécharger
+          prepare_apk_status_ready	Prête à partager
+          prepare_apk_ready_detail	Prête à partager • %1$s • %2$d Mo\n%3$s
+          prepare_apk_status_resumable	%1$s • %2$d%% téléchargé
+          prepare_apk_source_installed	Source : cette application installée
+          prepare_apk_source_installed_arm64	Source : cette application installée • téléphones ARM64 seulement
+          prepare_apk_source_downloaded	Source : version universelle téléchargée et vérifiée
+          prepare_apk_update_available	La version %1$s est disponible. Vous pouvez continuer à partager celle-ci ou télécharger la nouvelle.
+          prepare_apk_update_warning	Nouvelle version disponible
+          prepare_apk_get_universal	Télécharger la version universelle
+          prepare_apk_retry	Réessayer
+          prepare_apk_status_downloading	Téléchargement… %1$d%%
+          prepare_apk_phase_awaiting_connectivity	En attente du réseau…
+          prepare_apk_phase_retrying	Nouvel essai…
+          prepare_apk_phase_selecting_source	Choix de la source…
+          prepare_apk_phase_awaiting_route	En attente de Tor…
+          prepare_apk_phase_transferring	Téléchargement…
+          prepare_apk_phase_verifying_signature	Vérification de la signature…
+          prepare_apk_stop	Arrêter
+          prepare_apk_button_prepare	Préparer
+          prepare_apk_button_delete	Supprimer
+          prepare_apk_info	Version %1$s • %2$d Mo
+          prepare_apk_dialog_title	Télécharger la version universelle ?
+          prepare_apk_update_dialog_title	Télécharger la nouvelle version universelle ?
+          prepare_apk_dialog_message_unknown_size	Cela télécharge une version universelle vérifiée. Il suffit de le faire une fois.
+          prepare_apk_update_dialog_message	La version %1$s est disponible sur GitHub (%2$d Mo). Vous pouvez continuer à partager l'actuelle pendant le téléchargement.
+          prepare_apk_dialog_confirm	Télécharger
+          prepare_apk_downloading_title	Téléchargement de la version universelle
+          prepare_apk_downloading_message	Téléchargement de %1$d Mo…
+          prepare_apk_success	Version universelle prête !
+          prepare_apk_error_network	Erreur réseau. Vérifiez votre connexion.
+          prepare_apk_error_storage	Pas assez d'espace de stockage.
+          prepare_apk_error_rate_limited	%1$s est momentanément limité. Réessayez plus tard.
+          prepare_apk_error_no_universal	%1$s n'a pas de version universelle pour le moment.
+          prepare_apk_error_http	Échec du téléchargement depuis %1$s : HTTP %2$s %3$s
+          prepare_apk_error_generic	Échec du téléchargement. Réessayez.
+          prepare_apk_error_storage_needed	Pas assez d'espace : %1$s Mo nécessaires, %2$s Mo libres.
+          prepare_apk_error_no_sources	Aucune source de téléchargement configurée.
+          prepare_apk_error_tor_connecting	Tor se connecte encore. Réessayez quand il est prêt.
+          prepare_apk_error_no_url	%1$s n'a pas de lien utilisable.
+          prepare_apk_error_unreachable	Impossible de joindre %1$s.
+          prepare_apk_error_insecure_redirect	%1$s redirige vers un lien non sécurisé.
+          prepare_apk_error_resume_rejected	%1$s a refusé la reprise. Le prochain essai recommencera depuis le début.
+          prepare_apk_error_incomplete	Le téléchargement depuis %1$s s'est arrêté avant la fin. Il peut être repris.
+          prepare_apk_error_invalid_resume	%1$s a mal répondu à la reprise. Le prochain essai recommencera depuis le début.
+          prepare_apk_error_untrusted_key	L'application venant de %1$s n'est pas signée par une clé de confiance.
+          prepare_apk_error_not_universal	%1$s a envoyé une version pour un seul type de téléphone, pas la version universelle.
+          prepare_apk_error_apk_unreadable	Le fichier téléchargé est illisible.
+          prepare_apk_error_not_bitchat	Le fichier téléchargé n'est pas la bonne application.
+          prepare_apk_error_no_version	Le fichier téléchargé n'a pas de numéro de version.
+          prepare_apk_error_source_failed	Échec du téléchargement depuis %1$s.
+          prepare_apk_error_all_sources	Toutes les sources ont échoué.
+          prepare_apk_delete_confirm	Supprimer le fichier gardé ?
+          prepare_apk_delete_message	Cela libère environ %1$d Mo.
+          prepare_apk_required	Préparez d'abord l'application à partager.
+          prepare_apk_download_interrupted	Téléchargement interrompu
+          prepare_apk_download_cancelled	Téléchargement annulé
+          apk_download_notification_title	Téléchargement de l'application
+          apk_download_channel_name	Téléchargements
+          hotspot_share_via	Partager par point d'accès Wi-Fi
+          hotspot_share_via_subtitle	Créer un Wi-Fi pour partager sans internet
+          hotspot_share_other	Partager par Quick Share
+          hotspot_share_other_subtitle	Utiliser le partage Android habituel
+          hotspot_disconnect_title	Couper la connexion Wi-Fi Direct actuelle ?
+          hotspot_disconnect_message	Le point d'accès va couper la connexion Wi-Fi Direct actuelle. Cela peut interrompre Cast, Android Auto, Quick Share ou un autre appareil proche.
+          hotspot_disconnect_confirm	Couper et démarrer
+          install_bitchat_title	Installer l'application reçue
+          install_bitchat_subtitle	Installer Reo Fenua depuis les fichiers reçus
+          install_apk_dialog_title	Mettre à jour Reo Fenua
+          install_apk_dialog_message	Installer Reo Fenua depuis le fichier reçu ? Cela permet de partager l'application sans internet.
+          install_apk_permission_title	Autorisation nécessaire
+          install_apk_permission_message	Reo Fenua a besoin de l'autorisation d'installer des applications. Activez « Installer des applis inconnues » sur l'écran suivant.
+          install_apk_confirm	Installer
+          install_apk_grant_permission	Autoriser
+          install_apk_select_files	Choisir le fichier
+          install_apk_error	Échec de l'installation. Réessayez.
+          install_apk_no_files	Aucun fichier choisi.
+          cd_direct_wifi_aware	Wi-Fi direct
+          cd_direct_bluetooth	Bluetooth direct
+          cd_routed_mesh	Relayé par le réseau
+          notification_action_quit_bitchat	Quitter Reo Fenua
+          about_background_title	Fonctionner en arrière-plan
+          about_background_desc	Garde le réseau actif quand l'application est fermée
+          location_bluetooth_wifi_subtitle	Bluetooth • Wi-Fi • %1$s
+          action_private_message_title	Écrire à %1$s
+          action_private_message_subtitle	Envoyer un message privé
+          location_channels_heading	Discussions par lieu
+          location_channels_nearby	À proximité
+          mesh_section_subtitle	Réseau local. Pas besoin d'internet.
+          section_nearby	À proximité
+          location_tor_routing_title	Passer par Tor
+          location_tor_routing_desc	Cache votre adresse IP dans les discussions par lieu.
+          badge_recommended	Conseillé
+          people_count_title	Personnes (%1$d)
+          section_people	Personnes
+          section_on_location	Sur place
+          section_teleported_in	Venus de loin
+          mesh_title	Réseau local
+          debug_verbose_hint	Journalise les arrivées et départs, les connexions et les relais
+          debug_roles_hint	Activer ou couper les rôles et fermer les connexions
+          debug_rssi_fmt	Signal : %1$s
+          background_location_required_title	Localisation en arrière-plan conseillée
+          background_location_required_subtitle	Facultatif, rend le réseau plus fiable
+          background_location_explanation	Android demande la localisation en arrière-plan pour que Reo Fenua trouve les téléphones proches même application fermée. Le réseau reste actif après un redémarrage.
+          background_location_settings_tip	Dans les réglages, choisissez « Toujours autoriser ».
+          background_location_needs_for	Reo Fenua utilise la localisation en arrière-plan pour :
+          background_location_needs_bullets	- Trouver les téléphones proches application fermée\n- Se reconnecter après un redémarrage\n- Garder le réseau actif en arrière-plan
+          background_location_privacy_note	Votre position n'est JAMAIS collectée ni enregistrée.
+          grant_background_location	Autoriser en arrière-plan
+          skip_background_location	Continuer sans
+          perm_background_location_desc	Conseillé pour trouver les téléphones proches en arrière-plan
+          perm_background_location_system	Autoriser la localisation en arrière-plan
+          perm_type_background_location	Localisation en arrière-plan
+          tor_not_available_in_this_build	Tor n'est pas disponible dans cette version
+          checking	Vérification…
+          apk_not_ready_please_prepare_it_first	Application pas prête. Préparez-la d'abord.
+          '''
+          GUIDE_KT = r'''package com.bitchat.android.ui
+
+          import android.content.Context
+          import androidx.compose.foundation.Canvas
+          import androidx.compose.foundation.background
+          import androidx.compose.foundation.clickable
+          import androidx.compose.foundation.layout.Arrangement
+          import androidx.compose.foundation.layout.Box
+          import androidx.compose.foundation.layout.Column
+          import androidx.compose.foundation.layout.Row
+          import androidx.compose.foundation.layout.Spacer
+          import androidx.compose.foundation.layout.fillMaxSize
+          import androidx.compose.foundation.layout.fillMaxWidth
+          import androidx.compose.foundation.layout.height
+          import androidx.compose.foundation.layout.heightIn
+          import androidx.compose.foundation.layout.padding
+          import androidx.compose.foundation.layout.size
+          import androidx.compose.foundation.rememberScrollState
+          import androidx.compose.foundation.shape.CircleShape
+          import androidx.compose.foundation.verticalScroll
+          import androidx.compose.material3.Button
+          import androidx.compose.material3.HorizontalDivider
+          import androidx.compose.material3.MaterialTheme
+          import androidx.compose.material3.OutlinedButton
+          import androidx.compose.material3.Surface
+          import androidx.compose.material3.Text
+          import androidx.compose.material3.TextButton
+          import androidx.compose.runtime.Composable
+          import androidx.compose.runtime.LaunchedEffect
+          import androidx.compose.runtime.getValue
+          import androidx.compose.runtime.mutableStateOf
+          import androidx.compose.runtime.remember
+          import androidx.compose.runtime.setValue
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.geometry.Offset
+          import androidx.compose.ui.geometry.Size
+          import androidx.compose.ui.graphics.Color
+          import androidx.compose.ui.graphics.Path
+          import androidx.compose.ui.platform.LocalContext
+          import androidx.compose.ui.text.font.FontWeight
+          import androidx.compose.ui.text.style.TextAlign
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+          import androidx.compose.ui.window.Dialog
+          import androidx.compose.ui.window.DialogProperties
+
+          /** Reo Fenua : introduction au premier lancement et rubrique d'aide. */
+          object ReoFenuaGuide {
+              private const val PREFS = "reo_fenua_guide"
+              private const val KEY_SEEN = "intro_seen_v1"
+
+              val showIntro = mutableStateOf(false)
+
+              fun introSeen(context: Context): Boolean =
+                  context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_SEEN, false)
+
+              fun markSeen(context: Context) {
+                  context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                      .edit().putBoolean(KEY_SEEN, true).apply()
+              }
+          }
+
+          private val Lagon = Color(0xFF0E7C86)
+          private val Ocean = Color(0xFF0B3C5D)
+          private val LagonClair = Color(0xFF4FC3CC)
+          private val Ciel = Color(0xFFD7ECEE)
+          private val Sable = Color(0xFFF3E3C6)
+          private val Vanille = Color(0xFFE8B33A)
+
+          private class IntroPage(val title: String, val body: String)
+
+          private val introPages = listOf(
+              IntroPage(
+                  "Ia ora na !",
+                  "Bienvenue sur Reo Fenua, la messagerie qui marche même sans internet et sans réseau téléphone."
+              ),
+              IntroPage(
+                  "Comment ça marche ?",
+                  "Votre téléphone parle directement aux téléphones proches, par Bluetooth et Wi-Fi.\n\n" +
+                      "Chaque téléphone fait passer le message au suivant, comme une chaîne, jusqu'à la bonne personne."
+              ),
+              IntroPage(
+                  "Plus on est nombreux, plus ça porte loin",
+                  "Il faut que d'autres personnes autour de vous aient Reo Fenua.\n\n" +
+                      "Partagez l'application avec votre famille, vos voisins et votre quartier."
+              ),
+              IntroPage(
+                  "Pour bien commencer",
+                  "• Touchez votre nom en haut pour le changer.\n" +
+                      "• Écrivez en bas, puis envoyez.\n" +
+                      "• Le chiffre à côté des personnes montre combien de téléphones sont autour.\n" +
+                      "• Laissez le Bluetooth allumé."
+              ),
+              IntroPage(
+                  "En cas de coupure",
+                  "Pendant un cyclone ou une panne, Reo Fenua continue de marcher.\n\n" +
+                      "Gardez votre téléphone chargé. Dès que le réseau revient, appelez le 15 (SAMU), le 17 (police) ou le 18 (pompiers) si besoin."
+              )
+          )
+
+          private class HelpItem(val question: String, val answer: String)
+
+          private val helpItems = listOf(
+              HelpItem(
+                  "Pourquoi je vois 0 personne ?",
+                  "Personne autour de vous n'a Reo Fenua ouvert, ou le Bluetooth est éteint. Rapprochez-vous : la portée est d'environ 10 à 30 mètres entre deux téléphones."
+              ),
+              HelpItem(
+                  "Faut-il internet ?",
+                  "Non. Les messages passent de téléphone en téléphone. Si internet est disponible, Reo Fenua l'utilise aussi pour aller plus loin."
+              ),
+              HelpItem(
+                  "Qui peut lire mes messages ?",
+                  "Les messages écrits dans « mesh » sont lus par tous ceux qui sont autour. Pour un message privé et chiffré, touchez l'icône des personnes en haut, choisissez quelqu'un, puis écrivez-lui."
+              ),
+              HelpItem(
+                  "Comment changer mon nom ?",
+                  "Touchez votre nom en haut de l'écran (par exemple @anon1234) et tapez le nom que vous voulez."
+              ),
+              HelpItem(
+                  "Comment envoyer une photo ou un message vocal ?",
+                  "Touchez l'appareil photo pour une photo. Pour un message vocal, gardez le doigt appuyé sur le micro pendant que vous parlez, puis relâchez."
+              ),
+              HelpItem(
+                  "Comment partager l'application ?",
+                  "Touchez le logo en haut, puis « Réglages » et « Partager Reo Fenua ». Vous pouvez aussi envoyer le fichier d'installation par WhatsApp ou Bluetooth."
+              ),
+              HelpItem(
+                  "Est-ce que ça use la batterie ?",
+                  "Un peu plus que d'habitude, car le Bluetooth cherche les téléphones proches. En cas de coupure, gardez une batterie externe chargée."
+              ),
+              HelpItem(
+                  "Comment tout effacer en urgence ?",
+                  "Touchez 3 fois rapidement le logo en haut à gauche. Tous vos messages et votre identité sont effacés de ce téléphone."
+              )
+          )
+
+          /** Affiche l'introduction au premier lancement, ou quand on la redemande depuis l'aide. */
+          @Composable
+          fun ReoFenuaIntroGate() {
+              val context = LocalContext.current
+              LaunchedEffect(Unit) {
+                  if (!ReoFenuaGuide.introSeen(context)) ReoFenuaGuide.showIntro.value = true
+              }
+              if (ReoFenuaGuide.showIntro.value) {
+                  ReoFenuaIntroDialog(onDone = {
+                      ReoFenuaGuide.markSeen(context)
+                      ReoFenuaGuide.showIntro.value = false
+                  })
+              }
+          }
+
+          /** Dessin du lagon : ciel, soleil, montagnes, lagon et plage. */
+          @Composable
+          private fun LagonIllustration(modifier: Modifier = Modifier) {
+              Canvas(modifier = modifier) {
+                  val w = size.width
+                  val h = size.height
+                  drawRect(color = Ciel, size = Size(w, h * 0.62f))
+                  drawCircle(color = Vanille, radius = h * 0.09f, center = Offset(w * 0.76f, h * 0.2f))
+
+                  val montagnes = Path().apply {
+                      moveTo(0f, h * 0.62f)
+                      lineTo(w * 0.14f, h * 0.45f)
+                      lineTo(w * 0.24f, h * 0.51f)
+                      lineTo(w * 0.38f, h * 0.39f)
+                      lineTo(w * 0.52f, h * 0.49f)
+                      lineTo(w * 0.62f, h * 0.43f)
+                      lineTo(w * 0.8f, h * 0.62f)
+                      close()
+                  }
+                  drawPath(path = montagnes, color = Ocean)
+
+                  drawRect(color = Lagon, topLeft = Offset(0f, h * 0.6f), size = Size(w, h * 0.3f))
+
+                  for (row in 0 until 3) {
+                      val y = h * (0.66f + row * 0.08f)
+                      val vague = Path().apply {
+                          moveTo(0f, y)
+                          var x = 0f
+                          val step = w / 8f
+                          while (x < w) {
+                              quadraticTo(x + step / 4f, y - h * 0.025f, x + step / 2f, y)
+                              quadraticTo(x + step * 3f / 4f, y + h * 0.025f, x + step, y)
+                              x += step
+                          }
+                          lineTo(w, y + h * 0.012f)
+                          lineTo(0f, y + h * 0.012f)
+                          close()
+                      }
+                      drawPath(path = vague, color = LagonClair)
+                  }
+
+                  drawRect(color = Sable, topLeft = Offset(0f, h * 0.88f), size = Size(w, h * 0.12f))
+              }
+          }
+
+          @Composable
+          fun ReoFenuaIntroDialog(onDone: () -> Unit) {
+              var page by remember { mutableStateOf(0) }
+              val last = introPages.size - 1
+              val current = introPages[page]
+
+              Dialog(
+                  onDismissRequest = onDone,
+                  properties = DialogProperties(usePlatformDefaultWidth = false)
+              ) {
+                  Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                      Column(modifier = Modifier.fillMaxSize()) {
+                          Box(modifier = Modifier.fillMaxWidth()) {
+                              LagonIllustration(
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .height(if (page == 0) 300.dp else 160.dp)
+                              )
+                              TextButton(
+                                  onClick = onDone,
+                                  modifier = Modifier
+                                      .align(Alignment.TopEnd)
+                                      .padding(8.dp)
+                              ) {
+                                  Text(text = "Passer", fontSize = 17.sp, color = Ocean)
+                              }
+                              if (page == 0) {
+                                  Text(
+                                      text = "Reo Fenua",
+                                      fontSize = 40.sp,
+                                      fontWeight = FontWeight.Bold,
+                                      color = Ocean,
+                                      modifier = Modifier
+                                          .align(Alignment.TopStart)
+                                          .padding(start = 24.dp, top = 44.dp)
+                                  )
+                              }
+                          }
+
+                          Column(
+                              modifier = Modifier
+                                  .weight(1f)
+                                  .fillMaxWidth()
+                                  .verticalScroll(rememberScrollState())
+                                  .padding(horizontal = 24.dp, vertical = 24.dp),
+                              verticalArrangement = Arrangement.spacedBy(16.dp)
+                          ) {
+                              Text(
+                                  text = current.title,
+                                  fontSize = 28.sp,
+                                  fontWeight = FontWeight.Bold,
+                                  color = MaterialTheme.colorScheme.primary
+                              )
+                              Text(
+                                  text = current.body,
+                                  fontSize = 19.sp,
+                                  lineHeight = 28.sp,
+                                  color = MaterialTheme.colorScheme.onBackground
+                              )
+                          }
+
+                          Row(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .padding(bottom = 12.dp),
+                              horizontalArrangement = Arrangement.Center
+                          ) {
+                              for (i in introPages.indices) {
+                                  Box(
+                                      modifier = Modifier
+                                          .padding(horizontal = 5.dp)
+                                          .size(if (i == page) 12.dp else 9.dp)
+                                          .background(
+                                              color = if (i == page) Lagon else MaterialTheme.colorScheme.outline,
+                                              shape = CircleShape
+                                          )
+                                  )
+                              }
+                          }
+
+                          Row(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+                              horizontalArrangement = Arrangement.spacedBy(12.dp)
+                          ) {
+                              if (page > 0) {
+                                  OutlinedButton(
+                                      onClick = { page -= 1 },
+                                      modifier = Modifier
+                                          .weight(1f)
+                                          .heightIn(min = 56.dp)
+                                  ) {
+                                      Text(text = "Retour", fontSize = 18.sp)
+                                  }
+                              }
+                              Button(
+                                  onClick = { if (page < last) page += 1 else onDone() },
+                                  modifier = Modifier
+                                      .weight(1f)
+                                      .heightIn(min = 56.dp)
+                              ) {
+                                  Text(text = if (page < last) "Suivant" else "Commencer", fontSize = 18.sp)
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+
+          /** Rubrique d'aide : questions fréquentes, à toucher pour voir la réponse. */
+          @Composable
+          fun ReoFenuaHelpCard() {
+              var openIndex by remember { mutableStateOf(-1) }
+
+              Surface(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 20.dp, vertical = 12.dp),
+                  color = MaterialTheme.colorScheme.surface,
+                  shape = MaterialTheme.shapes.large
+              ) {
+                  Column(modifier = Modifier.padding(16.dp)) {
+                      Text(
+                          text = "Aide",
+                          fontSize = 20.sp,
+                          fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.primary
+                      )
+                      Spacer(modifier = Modifier.height(8.dp))
+                      helpItems.forEachIndexed { index, item ->
+                          val open = openIndex == index
+                          Column(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .heightIn(min = 48.dp)
+                                  .clickable { openIndex = if (open) -1 else index }
+                                  .padding(vertical = 12.dp)
+                          ) {
+                              Text(
+                                  text = (if (open) "▾  " else "▸  ") + item.question,
+                                  fontSize = 17.sp,
+                                  fontWeight = FontWeight.SemiBold,
+                                  color = MaterialTheme.colorScheme.onSurface
+                              )
+                              if (open) {
+                                  Text(
+                                      text = item.answer,
+                                      fontSize = 16.sp,
+                                      lineHeight = 24.sp,
+                                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                      modifier = Modifier.padding(top = 8.dp, start = 22.dp)
+                                  )
+                              }
+                          }
+                          if (index < helpItems.size - 1) {
+                              HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                          }
+                      }
+                      Spacer(modifier = Modifier.height(12.dp))
+                      Button(
+                          onClick = { ReoFenuaGuide.showIntro.value = true },
+                          modifier = Modifier
+                              .fillMaxWidth()
+                              .heightIn(min = 52.dp)
+                      ) {
+                          Text(text = "Revoir l'introduction", fontSize = 17.sp, textAlign = TextAlign.Center)
+                      }
+                  }
+              }
+          }
+          '''
+          ICON_BG = r'''<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <path android:fillColor="#0E7C86" android:pathData="M0,0h108v108h-108z"/>
+              <path android:fillColor="#0B3C5D" android:pathData="M0,84 C18,79 36,89 54,84 C72,79 90,89 108,84 V108 H0 Z"/>
+          </vector>
+          '''
+          ICON_FG = r'''<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <!-- Bulle de message -->
+              <path android:fillColor="#FFF7EFE2"
+                  android:pathData="M40,32 H68 A10,10 0 0 1 78,42 V60 A10,10 0 0 1 68,70 H50 L37,80 L40,70 A10,10 0 0 1 30,60 V42 A10,10 0 0 1 40,32 Z"/>
+              <!-- Soleil -->
+              <path android:fillColor="#E8B33A" android:pathData="M58,44 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 Z"/>
+              <!-- Montagnes -->
+              <path android:fillColor="#0B3C5D" android:pathData="M33,62 L43,47 L48,53 L54,44 L67,62 Z"/>
+              <!-- Lagon -->
+              <path android:fillColor="#0E7C86" android:pathData="M31,59 C35,56.5 39,61.5 44,59 C49,56.5 53,61.5 58,59 C63,56.5 67,61.5 77,59 V64 H31 Z"/>
+          </vector>
+          '''
+          ICON_MONO = r'''<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="108" android:viewportHeight="108">
+              <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+                  android:pathData="M40,32 H68 A10,10 0 0 1 78,42 V60 A10,10 0 0 1 68,70 H50 L37,80 L40,70 A10,10 0 0 1 30,60 V42 A10,10 0 0 1 40,32 Z M33,62 L43,47 L48,53 L54,44 L67,62 Z"/>
+          </vector>
+          '''
+
+          # ---------- 1. Application 100 % en français ----------
+          def esc(t):
+              t = t.replace("&", "&amp;").replace("<", "&lt;")
+              t = re.sub(r"(?<!\\)'", r"\\'", t)
+              t = re.sub(r'(?<!\\)"', r'\\"', t)
+              return t
+
+          STR_RE = re.compile(r'(<string name="([^"]+)"[^>]*>)(.*?)(</string>)', re.S)
+          PLU_RE = re.compile(r'<plurals name="([^"]+)">.*?</plurals>', re.S)
+
+          base = RES / "values/strings.xml"
+          fr_file = RES / "values-fr/strings.xml"
+          if base.exists() and fr_file.exists():
+              fr_text = fr_file.read_text()
+              fr = {m.group(2): m.group(3) for m in STR_RE.finditer(fr_text)}
+              fr_plurals = {m.group(1): m.group(0) for m in PLU_RE.finditer(fr_text)}
+              for line in FR_EXTRA.strip().splitlines():
+                  if "\t" in line:
+                      k, v = line.split("\t", 1)
+                      fr[k] = esc(v)
+
+              missing = []
+              def repl_str(m):
+                  k = m.group(2)
+                  if k in fr:
+                      return m.group(1) + fr[k] + m.group(4)
+                  missing.append(k)
+                  return m.group(0)
+              s = STR_RE.sub(repl_str, base.read_text())
+              s = PLU_RE.sub(lambda m: fr_plurals.get(m.group(1), m.group(0)), s)
+              # Le nom de l'application partout
+              s = re.sub(r"(?i)bitchatters", "utilisateurs de Reo Fenua", s)
+              s = s.replace("\\nbitchat", "\\nReo Fenua")
+              s = re.sub(r"(?<![\w./@:-])(?:bitchat|BitChat|Bitchat)(?![\w:/]|\.\w)", "Reo Fenua", s)
+              s = re.sub(r'<string name="app_name">[^<]*</string>', '<string name="app_name">Reo Fenua</string>', s)
+              s = re.sub(r'<string name="about_tagline">[^<]*</string>',
+                         '<string name="about_tagline">La voix du fenua, même sans réseau</string>', s)
+              base.write_text(s)
+              if missing:
+                  warn(f"{len(missing)} textes restent en anglais : {', '.join(missing[:15])}")
+
+              # Retirer les autres langues : l'application est en français sur tous les téléphones
+              removed = 0
+              for f in RES.glob("values-*/strings.xml"):
+                  q = f.parent.name[len("values-"):]
+                  if q in ("night",) or q.startswith("v") and q[1:].isdigit():
+                      continue
+                  f.unlink()
+                  removed += 1
+              print(f"Application en français ({removed} autres langues retirées).")
+          else:
+              warn("Fichiers de textes introuvables : traduction ignorée.")
+
+          # ---------- 2. Police plus lisible (au lieu de la police « machine à écrire ») ----------
+          tokens = UI / "theme/ChatVisualTokens.kt"
+          if tokens.exists():
+              t = tokens.read_text()
+              n = re.sub(r"internal val BitchatFontFamily = FontFamily\((?:.|\n)*?\n\)",
+                         "internal val BitchatFontFamily: FontFamily = FontFamily.Default", t, count=1)
+              if n != t:
+                  tokens.write_text(n)
+                  print("Police lisible appliquée.")
+              else:
+                  warn("Police non modifiée.")
+
+          # ---------- 3. Introduction au premier lancement + rubrique Aide ----------
+          (UI / "ReoFenuaGuide.kt").write_text(GUIDE_KT)
+
+          chat = UI / "ChatScreen.kt"
+          anchor = "    // About sheet\n"
+          c = chat.read_text() if chat.exists() else ""
+          if c.count(anchor) == 1:
+              chat.write_text(c.replace(anchor, "    // Reo Fenua : introduction\n    ReoFenuaIntroGate()\n\n" + anchor))
+              print("Introduction ajoutée.")
+          else:
+              warn("Emplacement de l'introduction introuvable.")
+
+          about = UI / "AboutSheet.kt"
+          anchor2 = '                    item(key = "tabs") {'
+          a = about.read_text() if about.exists() else ""
+          if a.count(anchor2) == 1:
+              about.write_text(a.replace(anchor2,
+                  '                    item(key = "reo_help") {\n'
+                  '                        ReoFenuaHelpCard()\n'
+                  '                    }\n\n' + anchor2))
+              print("Rubrique Aide ajoutée.")
+          else:
+              warn("Emplacement de l'aide introuvable.")
+
+          # ---------- 4. Nouvelle icône ----------
+          draw = RES / "drawable"
+          draw.mkdir(parents=True, exist_ok=True)
+          (draw / "ic_launcher_background.xml").write_text(ICON_BG)
+          (draw / "ic_launcher_foreground.xml").write_text(ICON_FG)
+          (draw / "ic_launcher_monochrome.xml").write_text(ICON_MONO)
+          print("Nouvelle icône Reo Fenua.")
+
+          # ---------- 5. Écran de démarrage couleur lagon ----------
+          for th in [RES / "values/themes.xml", RES / "values-night/themes.xml"]:
+              if not th.exists():
+                  continue
+              t = th.read_text()
+              if "windowSplashScreenBackground" in t:
+                  continue
+              if 'xmlns:tools=' not in t:
+                  t = t.replace("<resources>", '<resources xmlns:tools="http://schemas.android.com/tools">', 1)
+              t = re.sub(r'(<style name="Theme\.BitchatAndroid"[^>]*>)',
+                         r'\1\n        <item name="android:windowSplashScreenBackground" tools:targetApi="31">#0E7C86</item>',
+                         t, count=1)
+              th.write_text(t)
+          print("Écran de démarrage couleur lagon.")
           PY
 
       - name: Installer Java 21
