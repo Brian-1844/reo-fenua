@@ -302,7 +302,7 @@ jobs:
         working-directory: upstream
         run: |
           python3 - <<'PY'
-          import re, pathlib
+          import re, pathlib, os
 
           def warn(msg):
               print(f"::warning::{msg}")
@@ -683,6 +683,10 @@ jobs:
           Unable to open battery optimization settings: ${e.message}	Impossible d'ouvrir les réglages de batterie : ${e.message}
           Unable to open settings: ${e.message}	Impossible d'ouvrir les réglages : ${e.message}
           Unable to open app settings: ${e.message}	Impossible d'ouvrir les réglages de l'application : ${e.message}
+          cannot start chat with $peerNickname: user is blocked.	impossible de parler à $peerNickname : cette personne est bloquée.
+          cannot send message to $recipientNickname: user is blocked.	impossible d'écrire à $recipientNickname : cette personne est bloquée.
+          blocked user $peerNickname	personne bloquée : $peerNickname
+          unblocked user $peerNickname	personne débloquée : $peerNickname
           '''
           GUIDE_KT = r'''package com.bitchat.android.ui
 
@@ -842,6 +846,10 @@ jobs:
               HelpItem(
                   "Est-ce que ça use la batterie ?",
                   "Un peu plus que d'habitude, car le Bluetooth cherche les téléphones proches. En cas de coupure, gardez une batterie externe chargée."
+              ),
+              HelpItem(
+                  "Comment bloquer quelqu'un ?",
+                  "Touchez le logo, puis « Mes proches ». Sous la personne, touchez « Bloquer cette personne » et confirmez. Vous ne recevrez plus ses messages ni ses lettres. Vous pouvez la débloquer au même endroit."
               ),
               HelpItem(
                   "Comment tout effacer en urgence ?",
@@ -1122,10 +1130,14 @@ jobs:
                   "Gardez le doigt appuyé sur le bouton jaune du micro, parlez, puis relâchez. Le message part tout seul."),
               Step("Changer de discussion",
                   "Touchez « Autour de moi » en haut pour choisir une discussion.\n\n« Autour de moi » = les personnes près de vous, sans internet. Avec internet, vous pouvez aussi parler à votre quartier ou votre commune."),
+              Step("En cas d'urgence : Alerte",
+                  "Touchez le bouton rouge « Alerte » à droite de l'écran.\n\nChoisissez « Je vais bien », « J'ai besoin d'aide », « Besoin d'eau »… Le message part tout de suite, sans rien écrire."),
+              Step("Écrire une lettre",
+                  "Touchez l'enveloppe ✉ à droite de l'écran pour ouvrir la Boîte aux lettres.\n\nUne lettre peut aller à quelqu'un qui n'est pas là : elle attend jusqu'à 24 h et part dès que la personne est joignable."),
               Step("Partager l'application",
                   "Touchez le logo en haut à gauche, puis « Réglages » et « Partager Reo Fenua ».\n\nPlus il y a de téléphones, plus les messages vont loin."),
               Step("Besoin d'aide ?",
-                  "Touchez le logo en haut à gauche pour l'aide, les mises à jour et le fond d'écran (vous pouvez même mettre votre propre photo).\n\nCe bouton « ? » vous ramène toujours à ce mode d'emploi.")
+                  "Touchez le logo en haut à gauche pour l'aide, la taille du texte, vos proches, le fond d'écran, le son, la carte du réseau et le mode relais.\n\nCe bouton « ? » vous ramène toujours à ce mode d'emploi.")
           )
 
           object ReoFenuaSteps {
@@ -1135,8 +1147,9 @@ jobs:
           @Composable
           fun ReoFenuaStepsDialog(onDone: () -> Unit) {
               var index by remember { mutableStateOf(0) }
-              val last = guideSteps.size - 1
-              val step = guideSteps[index]
+              val steps = if (ReoFenuaMode.simple.value) guideSteps.filter { it.title != "Écrire une lettre" } else guideSteps
+              val last = steps.size - 1
+              val step = steps[index.coerceIn(0, last)]
 
               Dialog(
                   onDismissRequest = onDone,
@@ -1192,7 +1205,7 @@ jobs:
                                   )
                               }
                               Text(
-                                  text = "Étape " + (index + 1) + " sur " + guideSteps.size,
+                                  text = "Étape " + (index + 1) + " sur " + steps.size,
                                   fontSize = 16.sp,
                                   color = MaterialTheme.colorScheme.onSurfaceVariant
                               )
@@ -1216,7 +1229,7 @@ jobs:
                                   .padding(bottom = 12.dp),
                               horizontalArrangement = Arrangement.Center
                           ) {
-                              for (i in guideSteps.indices) {
+                              for (i in steps.indices) {
                                   Box(
                                       modifier = Modifier
                                           .padding(horizontal = 4.dp)
@@ -1263,34 +1276,77 @@ jobs:
               val show = mutableStateOf(false)
           }
 
-          /** Boutons ronds sur l'écran principal : « ? » (mode d'emploi) et flèche (mise à jour). */
+          /** Un bouton rond avec un mot dessous : icône + mot, toujours. */
+          @Composable
+          private fun RoundAction(
+              label: String,
+              background: Color,
+              onClick: () -> Unit,
+              badge: Int = 0,
+              content: @Composable () -> Unit
+          ) {
+              Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                  Box(
+                      modifier = Modifier
+                          .size(50.dp)
+                          .background(background, CircleShape)
+                          .clickable { onClick() }
+                          .semantics { contentDescription = label },
+                      contentAlignment = Alignment.Center
+                  ) {
+                      content()
+                      if (badge > 0) {
+                          Box(
+                              modifier = Modifier
+                                  .align(Alignment.TopEnd)
+                                  .size(20.dp)
+                                  .background(Color(0xFFC8102E), CircleShape),
+                              contentAlignment = Alignment.Center
+                          ) {
+                              Text(text = if (badge > 9) "9+" else badge.toString(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                          }
+                      }
+                  }
+                  Box(
+                      modifier = Modifier
+                          .padding(top = 3.dp)
+                          .background(SableClair.copy(alpha = 0.85f), MaterialTheme.shapes.small)
+                          .padding(horizontal = 5.dp, vertical = 1.dp)
+                  ) {
+                      Text(text = label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Ocean)
+                  }
+              }
+          }
+
+
+          /** Boutons ronds sur l'écran principal : Alerte, Lettres, Aide, Mise à jour. */
           @Composable
           fun BoxScope.ReoFenuaHelpButton(topPadding: Dp) {
+              ReoFenuaMode.load(LocalContext.current)
+              val simple = ReoFenuaMode.simple.value
               Column(
                   modifier = Modifier
                       .align(Alignment.TopEnd)
                       .zIndex(10f)
-                      .padding(top = topPadding, end = 14.dp),
-                  verticalArrangement = Arrangement.spacedBy(10.dp)
+                      .padding(top = topPadding, end = 10.dp),
+                  verticalArrangement = Arrangement.spacedBy(8.dp),
+                  horizontalAlignment = Alignment.CenterHorizontally
               ) {
-                  Box(
-                      modifier = Modifier
-                          .size(52.dp)
-                          .background(Vanille, CircleShape)
-                          .clickable { ReoFenuaSteps.show.value = true }
-                          .semantics { contentDescription = "Mode d'emploi" },
-                      contentAlignment = Alignment.Center
+                  RoundAction(label = "Alerte", background = Rouge, onClick = { ReoFenuaAlert.show.value = true }) {
+                      Text(text = "!", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                  }
+                  if (!simple) RoundAction(
+                      label = "Lettres",
+                      background = Ocean,
+                      onClick = { ReoFenuaLetters.show.value = true },
+                      badge = ReoFenuaLetters.unreadCount()
                   ) {
+                      Text(text = "✉", fontSize = 24.sp, color = Color.White)
+                  }
+                  RoundAction(label = "Aide", background = Vanille, onClick = { ReoFenuaSteps.show.value = true }) {
                       Text(text = "?", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Ocean)
                   }
-                  Box(
-                      modifier = Modifier
-                          .size(52.dp)
-                          .background(Lagon, CircleShape)
-                          .clickable { ReoFenuaUpdateDialog.show.value = true }
-                          .semantics { contentDescription = "Mise à jour" },
-                      contentAlignment = Alignment.Center
-                  ) {
+                  if (!simple) RoundAction(label = "Mise à jour", background = Lagon, onClick = { ReoFenuaUpdateDialog.show.value = true }) {
                       Canvas(modifier = Modifier.size(24.dp)) {
                           val s = size.width
                           val stroke = s * 0.12f
@@ -1984,6 +2040,2290 @@ jobs:
               }
           }
           '''
+          UPDATE_KT = r'''package com.bitchat.android.ui
+
+          import android.content.Context
+          import android.content.Intent
+          import android.net.Uri
+          import android.os.Build
+          import android.provider.Settings
+          import androidx.compose.foundation.layout.Arrangement
+          import androidx.compose.foundation.layout.Column
+          import androidx.compose.foundation.layout.fillMaxWidth
+          import androidx.compose.foundation.layout.heightIn
+          import androidx.compose.foundation.layout.padding
+          import androidx.compose.material3.Button
+          import androidx.compose.material3.LinearProgressIndicator
+          import androidx.compose.material3.MaterialTheme
+          import androidx.compose.material3.Surface
+          import androidx.compose.material3.Text
+          import androidx.compose.runtime.Composable
+          import androidx.compose.runtime.getValue
+          import androidx.compose.runtime.mutableFloatStateOf
+          import androidx.compose.runtime.mutableStateOf
+          import androidx.compose.runtime.remember
+          import androidx.compose.runtime.rememberCoroutineScope
+          import androidx.compose.runtime.setValue
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.platform.LocalContext
+          import androidx.compose.ui.text.font.FontWeight
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+          import androidx.core.content.FileProvider
+          import kotlinx.coroutines.Dispatchers
+          import kotlinx.coroutines.launch
+          import kotlinx.coroutines.withContext
+          import org.json.JSONObject
+          import java.io.File
+          import java.net.HttpURLConnection
+          import java.net.URL
+
+          /** Reo Fenua : vérifie, télécharge et installe les nouvelles versions publiées dans les Releases GitHub. */
+          object ReoFenuaUpdate {
+              const val REPO = "__REPO__"
+              const val CURRENT_TAG = "__TAG__"
+
+              class Release(val tag: String, val url: String, val size: Long, val fileName: String)
+
+              /** Choisit la version la plus légère adaptée à ce téléphone, sinon la version universelle. */
+              fun fetchLatest(): Release? {
+                  val conn = URL("https://api.github.com/repos/$REPO/releases/latest")
+                      .openConnection() as HttpURLConnection
+                  conn.connectTimeout = 15000
+                  conn.readTimeout = 15000
+                  conn.setRequestProperty("Accept", "application/vnd.github+json")
+                  conn.setRequestProperty("User-Agent", "ReoFenua")
+                  try {
+                      if (conn.responseCode != 200) return null
+                      val text = conn.inputStream.bufferedReader().use { it.readText() }
+                      val json = JSONObject(text)
+                      val tag = json.getString("tag_name")
+                      val assets = json.optJSONArray("assets") ?: return null
+                      val byName = HashMap<String, JSONObject>()
+                      for (i in 0 until assets.length()) {
+                          val a = assets.getJSONObject(i)
+                          byName[a.optString("name")] = a
+                      }
+                      val wanted = ArrayList<String>()
+                      for (abi in Build.SUPPORTED_ABIS) wanted.add("reo-fenua-$abi.apk")
+                      wanted.add("reo-fenua.apk")
+                      var chosen: JSONObject? = null
+                      for (name in wanted) {
+                          val a = byName[name]
+                          if (a != null) {
+                              chosen = a
+                              break
+                          }
+                      }
+                      if (chosen == null) {
+                          for (a in byName.values) {
+                              if (a.optString("name").endsWith(".apk")) {
+                                  chosen = a
+                                  break
+                              }
+                          }
+                      }
+                      val asset = chosen ?: return null
+                      return Release(
+                          tag = tag,
+                          url = asset.getString("browser_download_url"),
+                          size = asset.optLong("size", -1L),
+                          fileName = asset.optString("name")
+                      )
+                  } finally {
+                      conn.disconnect()
+                  }
+              }
+
+              fun updateFile(context: Context): File {
+                  val dir = File(context.cacheDir, "apk_update")
+                  dir.mkdirs()
+                  return File(dir, "reo-fenua-update.apk")
+              }
+
+              /** Télécharge le fichier en entier ; renvoie true seulement s'il est complet. */
+              fun download(context: Context, release: Release, onProgress: (Float) -> Unit): Boolean {
+                  val target = updateFile(context)
+                  val partial = File(target.parentFile, target.name + ".part")
+                  partial.delete()
+                  val conn = URL(release.url).openConnection() as HttpURLConnection
+                  conn.connectTimeout = 20000
+                  conn.readTimeout = 30000
+                  conn.instanceFollowRedirects = true
+                  conn.setRequestProperty("User-Agent", "ReoFenua")
+                  try {
+                      if (conn.responseCode != 200) return false
+                      val total = if (release.size > 0) release.size else conn.contentLengthLong
+                      var done = 0L
+                      conn.inputStream.use { input ->
+                          partial.outputStream().use { output ->
+                              val buffer = ByteArray(64 * 1024)
+                              while (true) {
+                                  val n = input.read(buffer)
+                                  if (n < 0) break
+                                  output.write(buffer, 0, n)
+                                  done += n
+                                  if (total > 0) onProgress((done.toFloat() / total.toFloat()).coerceIn(0f, 1f))
+                              }
+                          }
+                      }
+                      if (total > 0 && done != total) {
+                          partial.delete()
+                          return false
+                      }
+                      target.delete()
+                      return partial.renameTo(target)
+                  } finally {
+                      conn.disconnect()
+                  }
+              }
+
+              /** Lance l'installation ; renvoie false si Android demande d'abord l'autorisation. */
+              fun install(context: Context): Boolean {
+                  if (!context.packageManager.canRequestPackageInstalls()) {
+                      val settings = Intent(
+                          Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                          Uri.parse("package:" + context.packageName)
+                      )
+                      settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                      context.startActivity(settings)
+                      return false
+                  }
+                  val uri = FileProvider.getUriForFile(
+                      context,
+                      context.packageName + ".fileprovider",
+                      updateFile(context)
+                  )
+                  val intent = Intent(Intent.ACTION_VIEW)
+                  intent.setDataAndType(uri, "application/vnd.android.package-archive")
+                  intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                  intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                  context.startActivity(intent)
+                  return true
+              }
+          }
+
+          @Composable
+          fun ReoFenuaUpdateCard() {
+              val context = LocalContext.current
+              val scope = rememberCoroutineScope()
+              var status by remember { mutableStateOf("Version installée : " + ReoFenuaUpdate.CURRENT_TAG) }
+              var release by remember { mutableStateOf<ReoFenuaUpdate.Release?>(null) }
+              var busy by remember { mutableStateOf(false) }
+              var downloading by remember { mutableStateOf(false) }
+              var progress by remember { mutableFloatStateOf(0f) }
+              var ready by remember { mutableStateOf(false) }
+
+              fun startInstall() {
+                  try {
+                      if (!ReoFenuaUpdate.install(context)) {
+                          status = "Autorisez Reo Fenua à installer des applications dans l'écran qui s'ouvre, puis revenez et touchez « Installer »."
+                      }
+                  } catch (e: Exception) {
+                      status = "L'installation n'a pas pu démarrer. Réessayez."
+                  }
+              }
+
+              Surface(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 20.dp, vertical = 12.dp),
+                  color = MaterialTheme.colorScheme.primaryContainer,
+                  shape = MaterialTheme.shapes.large
+              ) {
+                  Column(
+                      modifier = Modifier.padding(16.dp),
+                      verticalArrangement = Arrangement.spacedBy(10.dp)
+                  ) {
+                      Text(
+                          text = "Mises à jour",
+                          fontSize = 19.sp,
+                          fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.onPrimaryContainer
+                      )
+                      Text(
+                          text = status,
+                          fontSize = 16.sp,
+                          color = MaterialTheme.colorScheme.onPrimaryContainer
+                      )
+                      if (downloading) {
+                          LinearProgressIndicator(
+                              progress = { progress },
+                              modifier = Modifier.fillMaxWidth()
+                          )
+                          Text(
+                              text = "Téléchargement : " + (progress * 100f).toInt() + " %",
+                              fontSize = 15.sp,
+                              color = MaterialTheme.colorScheme.onPrimaryContainer
+                          )
+                      }
+                      val rel = release
+                      when {
+                          ready -> {
+                              Button(
+                                  onClick = { startInstall() },
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .heightIn(min = 52.dp)
+                              ) {
+                                  Text(text = "Installer la mise à jour", fontSize = 17.sp)
+                              }
+                          }
+                          rel != null && !downloading -> {
+                              Button(
+                                  onClick = {
+                                      downloading = true
+                                      progress = 0f
+                                      status = "Téléchargement en cours… Gardez l'application ouverte."
+                                      scope.launch {
+                                          val ok = try {
+                                              withContext(Dispatchers.IO) {
+                                                  ReoFenuaUpdate.download(context, rel) { p -> progress = p }
+                                              }
+                                          } catch (e: Exception) {
+                                              false
+                                          }
+                                          downloading = false
+                                          if (ok) {
+                                              ready = true
+                                              status = "Téléchargement terminé ! Touchez « Installer », puis « Mettre à jour ». Vos messages sont conservés."
+                                              startInstall()
+                                          } else {
+                                              status = "Le téléchargement s'est arrêté (connexion coupée ?). Touchez à nouveau pour réessayer."
+                                          }
+                                      }
+                                  },
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .heightIn(min = 52.dp)
+                              ) {
+                                  Text(text = "Télécharger la mise à jour", fontSize = 17.sp)
+                              }
+                          }
+                          !downloading -> {
+                              Button(
+                                  enabled = !busy,
+                                  onClick = {
+                                      busy = true
+                                      status = "Recherche en cours…"
+                                      scope.launch {
+                                          val result = try {
+                                              withContext(Dispatchers.IO) { ReoFenuaUpdate.fetchLatest() }
+                                          } catch (e: Exception) {
+                                              null
+                                          }
+                                          busy = false
+                                          if (result == null) {
+                                              status = "Impossible de vérifier. Il faut une connexion internet."
+                                          } else if (result.tag == ReoFenuaUpdate.CURRENT_TAG) {
+                                              status = "Vous avez la dernière version (" + result.tag + ")."
+                                          } else {
+                                              val mo = if (result.size > 0) " (" + (result.size / (1024 * 1024)) + " Mo)" else ""
+                                              status = "Nouvelle version disponible : " + result.tag + mo +
+                                                  ".\nConseil : utilisez le Wi-Fi pour ne pas consommer votre forfait."
+                                              release = result
+                                          }
+                                      }
+                                  },
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .heightIn(min = 52.dp)
+                              ) {
+                                  Text(text = "Rechercher une mise à jour", fontSize = 17.sp)
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          '''
+          MAILBOX_KT = r'''package com.bitchat.android.ui
+
+          import android.content.Context
+          import androidx.compose.foundation.background
+          import androidx.compose.foundation.clickable
+          import androidx.compose.foundation.layout.Arrangement
+          import androidx.compose.foundation.layout.Box
+          import androidx.compose.foundation.layout.Column
+          import androidx.compose.foundation.layout.Row
+          import androidx.compose.foundation.layout.Spacer
+          import androidx.compose.foundation.layout.fillMaxSize
+          import androidx.compose.foundation.layout.fillMaxWidth
+          import androidx.compose.foundation.layout.height
+          import androidx.compose.foundation.layout.heightIn
+          import androidx.compose.foundation.layout.padding
+          import androidx.compose.foundation.layout.size
+          import androidx.compose.foundation.rememberScrollState
+          import androidx.compose.foundation.shape.CircleShape
+          import androidx.compose.foundation.verticalScroll
+          import androidx.compose.material3.Button
+          import androidx.compose.material3.MaterialTheme
+          import androidx.compose.material3.OutlinedButton
+          import androidx.compose.material3.OutlinedTextField
+          import androidx.compose.material3.Surface
+          import androidx.compose.material3.Text
+          import androidx.compose.material3.TextButton
+          import androidx.compose.runtime.Composable
+          import androidx.compose.runtime.LaunchedEffect
+          import androidx.compose.runtime.collectAsState
+          import androidx.compose.runtime.getValue
+          import androidx.compose.runtime.mutableStateListOf
+          import androidx.compose.runtime.mutableStateOf
+          import androidx.compose.runtime.remember
+          import androidx.compose.runtime.rememberCoroutineScope
+          import androidx.compose.runtime.setValue
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.graphics.Color
+          import androidx.compose.ui.platform.LocalContext
+          import androidx.compose.ui.text.font.FontWeight
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+          import androidx.compose.ui.window.Dialog
+          import androidx.compose.ui.window.DialogProperties
+          import com.bitchat.android.model.BitchatMessage
+          import com.bitchat.android.model.DeliveryStatus
+          import kotlinx.coroutines.launch
+          import org.json.JSONArray
+          import org.json.JSONObject
+          import java.io.File
+          import java.text.SimpleDateFormat
+          import java.util.Date
+          import java.util.Locale
+
+          /**
+           * Reo Fenua : Boîte aux lettres.
+           * Une lettre est un message privé chiffré qui commence par « ✉ Sujet ».
+           * L'application garde sa propre copie des lettres pour qu'aucune ne se perde.
+           */
+          data class ReoLetter(
+              val id: String,
+              val conversation: String,
+              val name: String,
+              val subject: String,
+              val body: String,
+              val time: Long,
+              val incoming: Boolean,
+              val status: String,
+              val opened: Boolean
+          )
+
+          object ReoFenuaLetters {
+              const val MARK = "✉ "
+              private const val FILE = "reo_letters.json"
+
+              val letters = mutableStateListOf<ReoLetter>()
+              val show = mutableStateOf(false)
+              private var loaded = false
+
+              fun format(subject: String, body: String): String =
+                  MARK + subject.trim().ifEmpty { "Sans sujet" } + "\n\n" + body.trim()
+
+              fun parse(content: String): Pair<String, String> {
+                  val rest = content.removePrefix(MARK)
+                  val cut = rest.indexOf("\n\n")
+                  return if (cut >= 0) Pair(rest.substring(0, cut).trim(), rest.substring(cut + 2).trim())
+                  else Pair(rest.trim(), "")
+              }
+
+              fun statusOf(status: DeliveryStatus?): String = when (status) {
+                  is DeliveryStatus.Read -> "read"
+                  is DeliveryStatus.Delivered -> "delivered"
+                  is DeliveryStatus.PartiallyDelivered -> "delivered"
+                  is DeliveryStatus.Failed -> "waiting"
+                  is DeliveryStatus.Sent -> "sent"
+                  else -> "waiting"
+              }
+
+              fun load(context: Context) {
+                  if (loaded) return
+                  loaded = true
+                  try {
+                      val f = File(context.filesDir, FILE)
+                      if (!f.exists()) return
+                      val arr = JSONArray(f.readText())
+                      val list = ArrayList<ReoLetter>()
+                      for (i in 0 until arr.length()) {
+                          val o = arr.getJSONObject(i)
+                          list.add(
+                              ReoLetter(
+                                  id = o.getString("id"),
+                                  conversation = o.optString("conversation"),
+                                  name = o.optString("name"),
+                                  subject = o.optString("subject"),
+                                  body = o.optString("body"),
+                                  time = o.optLong("time"),
+                                  incoming = o.optBoolean("incoming"),
+                                  status = o.optString("status", "waiting"),
+                                  opened = o.optBoolean("opened")
+                              )
+                          )
+                      }
+                      letters.clear()
+                      letters.addAll(list)
+                  } catch (e: Exception) {
+                      // fichier abîmé : on repart d'une boîte vide
+                  }
+              }
+
+              fun save(context: Context) {
+                  try {
+                      val arr = JSONArray()
+                      for (l in letters) {
+                          val o = JSONObject()
+                          o.put("id", l.id)
+                          o.put("conversation", l.conversation)
+                          o.put("name", l.name)
+                          o.put("subject", l.subject)
+                          o.put("body", l.body)
+                          o.put("time", l.time)
+                          o.put("incoming", l.incoming)
+                          o.put("status", l.status)
+                          o.put("opened", l.opened)
+                          arr.put(o)
+                      }
+                      File(context.filesDir, FILE).writeText(arr.toString())
+                  } catch (e: Exception) {
+                      // on réessaiera à la prochaine lettre
+                  }
+              }
+
+              /** Récupère les lettres présentes dans les conversations privées et met à jour leur état. */
+              fun ingest(
+                  context: Context,
+                  chats: Map<String, List<BitchatMessage>>,
+                  myPeerID: String,
+                  myNickname: String
+              ) {
+                  load(context)
+                  var changed = false
+                  for ((conversation, messages) in chats) {
+                      for (m in messages) {
+                          if (!m.content.startsWith(MARK)) continue
+                          val mine = m.senderPeerID == myPeerID || (m.senderPeerID == null && m.sender == myNickname)
+                          val index = letters.indexOfFirst { it.id == m.id }
+                          if (index < 0) {
+                              val (subject, body) = parse(m.content)
+                              val local = if (mine) letters.indexOfFirst {
+                                  it.id.startsWith("local-") && !it.incoming && it.subject == subject && it.body == body
+                              } else -1
+                              if (local >= 0) {
+                                  letters[local] = letters[local].copy(id = m.id, status = statusOf(m.deliveryStatus))
+                                  changed = true
+                                  continue
+                              }
+                              val name = if (mine) (m.recipientNickname ?: "?") else m.sender
+                              letters.add(
+                                  ReoLetter(
+                                      id = m.id,
+                                      conversation = conversation,
+                                      name = name,
+                                      subject = subject,
+                                      body = body,
+                                      time = m.timestamp.time,
+                                      incoming = !mine,
+                                      status = if (mine) statusOf(m.deliveryStatus) else "received",
+                                      opened = mine
+                                  )
+                              )
+                              changed = true
+                          } else if (mine) {
+                              val old = letters[index]
+                              val st = statusOf(m.deliveryStatus)
+                              if (rank(st) > rank(old.status)) {
+                                  letters[index] = old.copy(status = st)
+                                  changed = true
+                              }
+                          }
+                      }
+                  }
+                  if (changed) save(context)
+              }
+
+              private fun rank(s: String): Int = when (s) {
+                  "read" -> 3
+                  "delivered" -> 2
+                  "sent" -> 1
+                  else -> 0
+              }
+
+              /** Copie locale d'une lettre envoyée, au cas où elle n'apparaît pas tout de suite dans les conversations. */
+              fun rememberSent(context: Context, conversation: String, name: String, content: String) {
+                  load(context)
+                  val (subject, body) = parse(content)
+                  val exists = letters.any { !it.incoming && it.subject == subject && it.body == body && it.conversation == conversation }
+                  if (!exists) {
+                      letters.add(
+                          ReoLetter(
+                              id = "local-" + System.currentTimeMillis(),
+                              conversation = conversation,
+                              name = name,
+                              subject = subject,
+                              body = body,
+                              time = System.currentTimeMillis(),
+                              incoming = false,
+                              status = "waiting",
+                              opened = true
+                          )
+                      )
+                      save(context)
+                  }
+              }
+
+              fun markOpened(context: Context, id: String) {
+                  val i = letters.indexOfFirst { it.id == id }
+                  if (i >= 0 && !letters[i].opened) {
+                      letters[i] = letters[i].copy(opened = true)
+                      save(context)
+                  }
+              }
+
+              fun unreadCount(): Int = letters.count { it.incoming && !it.opened && !ReoFenuaBlock.isBlocked(it.conversation) }
+          }
+
+          private val LOcean = Color(0xFF0B3C5D)
+          private val LLagon = Color(0xFF0E7C86)
+          private val LVanille = Color(0xFFE8B33A)
+          private val LVert = Color(0xFF2E7D32)
+          private val LGris = Color(0xFFC9BBA4)
+
+          private val quickMessages = listOf(
+              "Je vais bien.",
+              "J'ai besoin d'eau.",
+              "J'ai besoin d'un médecin.",
+              "Où es-tu ?",
+              "Appelle-moi dès que possible."
+          )
+
+          private fun dateText(time: Long): String =
+              SimpleDateFormat("d MMM 'à' HH'h'mm", Locale.FRENCH).format(Date(time))
+
+          /** Toujours présent sur l'écran principal : récupère les lettres et ouvre la boîte quand on la demande. */
+          @Composable
+          fun ReoFenuaMailboxHost(viewModel: ChatViewModel) {
+              val context = LocalContext.current
+              val chats by viewModel.privateChats.collectAsState()
+              val nickname by viewModel.nickname.collectAsState()
+              LaunchedEffect(chats) {
+                  ReoFenuaContacts.load(context)
+                  ReoFenuaLetters.ingest(context, chats, viewModel.myPeerID, nickname)
+              }
+              if (ReoFenuaLetters.show.value) {
+                  Dialog(
+                      onDismissRequest = { ReoFenuaLetters.show.value = false },
+                      properties = DialogProperties(usePlatformDefaultWidth = false)
+                  ) {
+                      Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                          MailboxScreen(viewModel = viewModel, onClose = { ReoFenuaLetters.show.value = false })
+                      }
+                  }
+              }
+          }
+
+          private class ReoPerson(val id: String, val name: String)
+
+          @Composable
+          private fun MailboxScreen(viewModel: ChatViewModel, onClose: () -> Unit) {
+              val context = LocalContext.current
+              var tab by remember { mutableStateOf(0) }
+              var writing by remember { mutableStateOf(false) }
+              var openId by remember { mutableStateOf<String?>(null) }
+              var replyTo by remember { mutableStateOf<String?>(null) }
+              var replySubject by remember { mutableStateOf("") }
+
+              Column(modifier = Modifier.fillMaxSize()) {
+                  Row(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .background(LLagon)
+                          .padding(start = 20.dp, end = 8.dp, top = 36.dp, bottom = 14.dp),
+                      verticalAlignment = Alignment.CenterVertically
+                  ) {
+                      Column(modifier = Modifier.weight(1f)) {
+                          Text(
+                              text = if (writing) "Écrire une lettre" else "✉ Boîte aux lettres",
+                              fontSize = 24.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = Color.White
+                          )
+                          Text(
+                              text = if (writing) "Elle partira dès que possible" else "Vos lettres voyagent de téléphone en téléphone",
+                              fontSize = 14.sp,
+                              color = Color.White
+                          )
+                      }
+                      TextButton(onClick = {
+                          when {
+                              writing -> writing = false
+                              openId != null -> openId = null
+                              else -> onClose()
+                          }
+                      }) {
+                          Text(text = if (writing || openId != null) "Retour" else "Fermer", fontSize = 17.sp, color = Color.White)
+                      }
+                  }
+                  NihoManoBand(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .height(12.dp)
+                  )
+
+                  val current = openId?.let { id -> ReoFenuaLetters.letters.firstOrNull { it.id == id } }
+                  when {
+                      writing -> WriteLetter(
+                          viewModel = viewModel,
+                          initialTo = replyTo,
+                          initialSubject = replySubject,
+                          onSent = {
+                              writing = false
+                              tab = 1
+                          }
+                      )
+                      current != null -> LetterDetail(
+                          letter = current,
+                          onReply = {
+                              replyTo = current.conversation
+                              replySubject = if (current.subject.startsWith("Re :")) current.subject else "Re : " + current.subject
+                              openId = null
+                              writing = true
+                          }
+                      )
+                      else -> {
+                          Row(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .padding(horizontal = 16.dp, vertical = 10.dp),
+                              horizontalArrangement = Arrangement.spacedBy(10.dp)
+                          ) {
+                              val unread = ReoFenuaLetters.unreadCount()
+                              val labels = listOf(if (unread > 0) "Reçues ($unread)" else "Reçues", "Envoyées")
+                              for (i in 0..1) {
+                                  if (tab == i) {
+                                      Button(onClick = { tab = i }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                                          Text(text = labels[i], fontSize = 16.sp)
+                                      }
+                                  } else {
+                                      OutlinedButton(onClick = { tab = i }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                                          Text(text = labels[i], fontSize = 16.sp)
+                                      }
+                                  }
+                              }
+                          }
+                          val list = ReoFenuaLetters.letters
+                              .filter { it.incoming == (tab == 0) }
+                              .filter { !(it.incoming && ReoFenuaBlock.isBlocked(it.conversation)) }
+                              .sortedByDescending { it.time }
+                          Column(
+                              modifier = Modifier
+                                  .weight(1f)
+                                  .fillMaxWidth()
+                                  .verticalScroll(rememberScrollState())
+                                  .padding(horizontal = 16.dp),
+                              verticalArrangement = Arrangement.spacedBy(10.dp)
+                          ) {
+                              if (list.isEmpty()) {
+                                  Text(
+                                      text = if (tab == 0) "Aucune lettre reçue pour le moment." else "Vous n'avez pas encore envoyé de lettre.",
+                                      fontSize = 17.sp,
+                                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                      modifier = Modifier.padding(top = 24.dp)
+                                  )
+                              }
+                              for (l in list) {
+                                  LetterRow(letter = l, onClick = {
+                                      ReoFenuaLetters.markOpened(context, l.id)
+                                      openId = l.id
+                                  })
+                              }
+                              Spacer(modifier = Modifier.height(90.dp))
+                          }
+                          TextButton(
+                              onClick = { ReoFenuaContacts.show.value = true },
+                              modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                          ) {
+                              Text(text = "Mes proches : ajouter un nom et une photo", fontSize = 16.sp)
+                          }
+                          Box(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+                              Button(
+                                  onClick = {
+                                      replyTo = null
+                                      replySubject = ""
+                                      writing = true
+                                  },
+                                  modifier = Modifier
+                                      .fillMaxWidth()
+                                      .heightIn(min = 56.dp)
+                              ) {
+                                  Text(text = "✎  Écrire une lettre", fontSize = 18.sp)
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          private fun LetterRow(letter: ReoLetter, onClick: () -> Unit) {
+              Surface(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .clickable { onClick() },
+                  color = MaterialTheme.colorScheme.surface,
+                  shape = MaterialTheme.shapes.large
+              ) {
+                  val shownName = ReoFenuaContacts.nameFor(letter.conversation, letter.name)
+                  Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
+                      ReoFenuaAvatar(key = letter.conversation, name = shownName, size = 46.dp)
+                      Column(
+                          modifier = Modifier
+                              .weight(1f)
+                              .padding(start = 12.dp)
+                      ) {
+                          Text(
+                              text = (if (letter.incoming) "" else "À : ") + shownName,
+                              fontSize = 17.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = MaterialTheme.colorScheme.onSurface
+                          )
+                          Text(
+                              text = letter.subject,
+                              fontSize = 16.sp,
+                              fontWeight = FontWeight.SemiBold,
+                              color = MaterialTheme.colorScheme.onSurface
+                          )
+                          Text(
+                              text = letter.body.take(70),
+                              fontSize = 15.sp,
+                              color = MaterialTheme.colorScheme.onSurfaceVariant
+                          )
+                          Text(
+                              text = dateText(letter.time) + (if (letter.incoming) "" else " · " + statusLabel(letter.status)),
+                              fontSize = 13.sp,
+                              color = MaterialTheme.colorScheme.onSurfaceVariant,
+                              modifier = Modifier.padding(top = 4.dp)
+                          )
+                      }
+                      if (letter.incoming && !letter.opened) {
+                          Box(
+                              modifier = Modifier
+                                  .padding(top = 4.dp)
+                                  .size(12.dp)
+                                  .background(LVanille, CircleShape)
+                          )
+                      }
+                  }
+              }
+          }
+
+          private fun statusLabel(s: String): String = when (s) {
+              "read" -> "Lue"
+              "delivered" -> "Arrivée"
+              "sent" -> "En route"
+              else -> "En attente"
+          }
+
+          @Composable
+          private fun LetterDetail(letter: ReoLetter, onReply: () -> Unit) {
+              Column(
+                  modifier = Modifier
+                      .fillMaxSize()
+                      .verticalScroll(rememberScrollState())
+                      .padding(16.dp),
+                  verticalArrangement = Arrangement.spacedBy(14.dp)
+              ) {
+                  Text(
+                      text = letter.subject,
+                      fontSize = 24.sp,
+                      fontWeight = FontWeight.Bold,
+                      color = MaterialTheme.colorScheme.primary
+                  )
+                  Text(
+                      text = (if (letter.incoming) "De : " else "À : ") + ReoFenuaContacts.nameFor(letter.conversation, letter.name) + " · " + dateText(letter.time),
+                      fontSize = 15.sp,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant
+                  )
+                  if (!letter.incoming) {
+                      Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.large) {
+                          Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                              Text(text = "Où est votre lettre ?", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                              val r = when (letter.status) { "read" -> 3; "delivered" -> 2; "sent" -> 1; else -> 0 }
+                              StepLine(done = true, label = if (r >= 1) "Partie de votre téléphone" else "En attente que " + letter.name + " soit joignable (jusqu'à 24 h)")
+                              StepLine(done = r >= 2, label = "Arrivée chez " + letter.name)
+                              StepLine(done = r >= 3, label = "Lue")
+                          }
+                      }
+                  }
+                  Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.large) {
+                      Text(
+                          text = letter.body,
+                          fontSize = 18.sp,
+                          lineHeight = 27.sp,
+                          color = MaterialTheme.colorScheme.onSurface,
+                          modifier = Modifier.fillMaxWidth().padding(16.dp)
+                      )
+                  }
+                  if (letter.incoming) {
+                      Button(
+                          onClick = onReply,
+                          modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                      ) {
+                          Text(text = "Répondre", fontSize = 18.sp)
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          private fun StepLine(done: Boolean, label: String) {
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                  Box(
+                      modifier = Modifier
+                          .size(26.dp)
+                          .background(if (done) LVert else LGris, CircleShape),
+                      contentAlignment = Alignment.Center
+                  ) {
+                      if (done) Text(text = "✓", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                  }
+                  Text(
+                      text = label,
+                      fontSize = 16.sp,
+                      color = MaterialTheme.colorScheme.onSurface,
+                      modifier = Modifier.padding(start = 12.dp)
+                  )
+              }
+          }
+
+          @Composable
+          private fun WriteLetter(
+              viewModel: ChatViewModel,
+              initialTo: String?,
+              initialSubject: String,
+              onSent: () -> Unit
+          ) {
+              val context = LocalContext.current
+              val scope = rememberCoroutineScope()
+              val chats by viewModel.privateChats.collectAsState()
+              val nicknames by viewModel.peerNicknames.collectAsState()
+              val myNick by viewModel.nickname.collectAsState()
+
+              // Les personnes connues : conversations privées existantes + personnes autour maintenant
+              val people = remember(chats, nicknames) {
+                  val map = LinkedHashMap<String, String>()
+                  for ((conv, msgs) in chats) {
+                      val other = msgs.lastOrNull { it.senderPeerID != viewModel.myPeerID && it.sender != myNick }
+                      val name = other?.sender ?: msgs.lastOrNull()?.recipientNickname ?: nicknames[conv]
+                      if (!name.isNullOrBlank()) map[conv] = name
+                  }
+                  for ((id, name) in nicknames) {
+                      if (id != viewModel.myPeerID && !map.containsKey(id) && name.isNotBlank()) map[id] = name
+                  }
+                  map.map { ReoPerson(it.key, it.value) }
+              }
+
+              var to by remember { mutableStateOf(initialTo) }
+              var subject by remember { mutableStateOf(initialSubject) }
+              var body by remember { mutableStateOf("") }
+              var info by remember { mutableStateOf("") }
+              var sending by remember { mutableStateOf(false) }
+
+              Column(
+                  modifier = Modifier
+                      .fillMaxSize()
+                      .verticalScroll(rememberScrollState())
+                      .padding(16.dp),
+                  verticalArrangement = Arrangement.spacedBy(12.dp)
+              ) {
+                  Text(text = "À qui ?", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                  if (people.isEmpty()) {
+                      Text(
+                          text = "Vous ne connaissez encore personne. Rencontrez d'abord quelqu'un dans « Autour de moi », puis vous pourrez lui écrire même quand il est loin.",
+                          fontSize = 16.sp,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant
+                      )
+                  }
+                  for (p in people) {
+                      val selected = to == p.id
+                      Surface(
+                          modifier = Modifier
+                              .fillMaxWidth()
+                              .clickable { to = p.id },
+                          color = if (selected) Color(0xFFD7ECEE) else MaterialTheme.colorScheme.surface,
+                          shape = MaterialTheme.shapes.large
+                      ) {
+                          Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                              val shown = ReoFenuaContacts.nameFor(p.id, p.name)
+                              ReoFenuaAvatar(key = p.id, name = shown, size = 40.dp)
+                              Text(
+                                  text = shown,
+                                  fontSize = 17.sp,
+                                  fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                  color = MaterialTheme.colorScheme.onSurface,
+                                  modifier = Modifier.weight(1f).padding(start = 12.dp)
+                              )
+                              if (selected) {
+                                  Box(
+                                      modifier = Modifier.size(28.dp).background(LLagon, CircleShape),
+                                      contentAlignment = Alignment.Center
+                                  ) {
+                                      Text(text = "✓", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                  }
+                              }
+                          }
+                      }
+                  }
+
+                  OutlinedTextField(
+                      value = subject,
+                      onValueChange = { subject = it.take(80) },
+                      label = { Text("Sujet") },
+                      singleLine = true,
+                      modifier = Modifier.fillMaxWidth()
+                  )
+                  OutlinedTextField(
+                      value = body,
+                      onValueChange = { body = it },
+                      label = { Text("Votre lettre") },
+                      minLines = 5,
+                      modifier = Modifier.fillMaxWidth()
+                  )
+
+                  Text(text = "Messages rapides", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                  for (q in quickMessages) {
+                      OutlinedButton(
+                          onClick = {
+                              body = if (body.isBlank()) q else body.trimEnd() + " " + q
+                              if (subject.isBlank()) subject = q.trimEnd('.', ' ', '?')
+                          },
+                          modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                      ) {
+                          Text(text = q, fontSize = 16.sp)
+                      }
+                  }
+
+                  if (info.isNotEmpty()) {
+                      Text(text = info, fontSize = 16.sp, color = MaterialTheme.colorScheme.error)
+                  }
+
+                  Button(
+                      enabled = !sending,
+                      onClick = {
+                          val dest = to
+                          when {
+                              dest == null -> info = "Choisissez à qui envoyer la lettre."
+                              body.isBlank() -> info = "Écrivez quelques mots avant d'envoyer."
+                              else -> {
+                                  sending = true
+                                  info = ""
+                                  val content = ReoFenuaLetters.format(subject, body)
+                                  scope.launch {
+                                      val before = viewModel.selectedPrivateChatPeer.value
+                                      // On ferme d'abord toute conversation ouverte, pour être sûr d'écrire à la bonne personne
+                                      if (before != null) viewModel.endPrivateChat()
+                                      try {
+                                          viewModel.startPrivateChat(dest)
+                                      } catch (e: Exception) {
+                                          // vérifié juste après
+                                      }
+                                      // Sécurité : on n'envoie JAMAIS la lettre si la conversation privée n'est pas ouverte,
+                                      // sinon elle partirait en public.
+                                      if (viewModel.selectedPrivateChatPeer.value == null) {
+                                          sending = false
+                                          info = "Impossible d'écrire à cette personne pour le moment. Réessayez quand elle aura été autour de vous."
+                                          if (before != null) viewModel.startPrivateChat(before)
+                                      } else {
+                                          val recipientName = people.firstOrNull { it.id == dest }?.let { ReoFenuaContacts.nameFor(it.id, it.name) } ?: "?"
+                                          viewModel.sendMessage(content)
+                                          kotlinx.coroutines.delay(1500)
+                                          ReoFenuaLetters.rememberSent(context, dest, recipientName, content)
+                                          viewModel.endPrivateChat()
+                                          if (before != null) viewModel.startPrivateChat(before)
+                                          sending = false
+                                          onSent()
+                                      }
+                                  }
+                              }
+                          }
+                      },
+                      modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                  ) {
+                      Text(text = if (sending) "Envoi…" else "Envoyer la lettre ✉", fontSize = 18.sp)
+                  }
+                  Text(
+                      text = "La lettre est chiffrée : seule cette personne peut la lire. Si elle est loin, la lettre attend jusqu'à 24 h qu'elle soit joignable.",
+                      fontSize = 14.sp,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant
+                  )
+                  Spacer(modifier = Modifier.height(24.dp))
+              }
+          }
+          '''
+          SOUND_KT = r'''package com.bitchat.android.ui
+
+          import android.content.Context
+          import android.media.AudioAttributes
+          import android.media.AudioManager
+          import android.media.MediaPlayer
+          import android.net.Uri
+          import androidx.compose.foundation.layout.Arrangement
+          import androidx.compose.foundation.layout.Column
+          import androidx.compose.foundation.layout.Row
+          import androidx.compose.foundation.layout.fillMaxWidth
+          import androidx.compose.foundation.layout.heightIn
+          import androidx.compose.foundation.layout.padding
+          import androidx.compose.material3.Button
+          import androidx.compose.material3.MaterialTheme
+          import androidx.compose.material3.OutlinedButton
+          import androidx.compose.material3.Surface
+          import androidx.compose.material3.Text
+          import androidx.compose.runtime.Composable
+          import androidx.compose.runtime.LaunchedEffect
+          import androidx.compose.runtime.collectAsState
+          import androidx.compose.runtime.getValue
+          import androidx.compose.runtime.mutableStateOf
+          import androidx.compose.runtime.remember
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.platform.LocalContext
+          import androidx.compose.ui.text.font.FontWeight
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+          import com.bitchat.android.R
+
+          /** Reo Fenua : petit son polynésien quand un message, une photo, un fichier ou une lettre arrive. */
+          object ReoFenuaSound {
+              private const val PREFS = "reo_fenua_guide"
+              private const val KEY = "message_sound"
+
+              val names = listOf("Ukulélé", "Pū (conque)", "Clochette", "Aucun son")
+              val choice = mutableStateOf(-1)
+              private var lastPlay = 0L
+
+              fun load(context: Context) {
+                  if (choice.value < 0) {
+                      choice.value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY, 0)
+                  }
+              }
+
+              fun save(context: Context, value: Int) {
+                  choice.value = value
+                  context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY, value).apply()
+              }
+
+              private fun resId(index: Int): Int = when (index) {
+                  0 -> R.raw.reo_ukulele
+                  1 -> R.raw.reo_pu
+                  2 -> R.raw.reo_clochette
+                  else -> 0
+              }
+
+              /** Joue le son choisi. Respecte le mode silencieux / vibreur du téléphone. */
+              fun play(context: Context, index: Int = -1, force: Boolean = false) {
+                  load(context)
+                  val chosen = if (index >= 0) index else choice.value
+                  val id = resId(chosen)
+                  if (id == 0) return
+                  val now = System.currentTimeMillis()
+                  if (!force && now - lastPlay < 1500) return
+                  lastPlay = now
+                  val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                  if (audio != null && audio.ringerMode != AudioManager.RINGER_MODE_NORMAL) return
+                  try {
+                      val player = MediaPlayer()
+                      player.setAudioAttributes(
+                          AudioAttributes.Builder()
+                              .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                              .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                              .build()
+                      )
+                      player.setDataSource(context, Uri.parse("android.resource://" + context.packageName + "/" + id))
+                      player.setOnCompletionListener { it.release() }
+                      player.setOnErrorListener { p, _, _ ->
+                          p.release()
+                          true
+                      }
+                      player.prepare()
+                      player.start()
+                  } catch (e: Exception) {
+                      // pas de son possible : on continue sans
+                  }
+              }
+          }
+
+          /** Écoute les nouveaux messages (publics, privés, lettres, photos, fichiers…) et joue le son. */
+          @Composable
+          fun ReoFenuaSoundWatcher(viewModel: ChatViewModel) {
+              val context = LocalContext.current
+              val messages by viewModel.messages.collectAsState()
+              val chats by viewModel.privateChats.collectAsState()
+              val seen = remember { HashSet<String>() }
+              val primed = remember { mutableStateOf(false) }
+
+              LaunchedEffect(messages, chats) {
+                  val me = viewModel.myPeerID
+                  val myNick = viewModel.nickname.value
+                  val recent = System.currentTimeMillis() - 120_000L
+                  var fresh = false
+                  val all = ArrayList<com.bitchat.android.model.BitchatMessage>()
+                  all.addAll(messages)
+                  for (list in chats.values) all.addAll(list)
+                  for (m in all) {
+                      if (seen.add(m.id) && primed.value) {
+                          val fromOther = m.senderPeerID != me && m.sender != myNick && m.sender != "system"
+                          if (fromOther && m.timestamp.time > recent) fresh = true
+                      }
+                  }
+                  primed.value = true
+                  if (fresh) ReoFenuaSound.play(context)
+              }
+          }
+
+          /** Carte « Son des messages » dans l'écran d'information. */
+          @Composable
+          fun ReoFenuaSoundCard() {
+              val context = LocalContext.current
+              LaunchedEffect(Unit) { ReoFenuaSound.load(context) }
+              val current = ReoFenuaSound.choice.value
+
+              Surface(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 20.dp, vertical = 12.dp),
+                  color = MaterialTheme.colorScheme.surface,
+                  shape = MaterialTheme.shapes.large
+              ) {
+                  Column(
+                      modifier = Modifier.padding(16.dp),
+                      verticalArrangement = Arrangement.spacedBy(10.dp)
+                  ) {
+                      Text(
+                          text = "Son des messages",
+                          fontSize = 20.sp,
+                          fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.primary
+                      )
+                      Text(
+                          text = "Touchez un son pour l'écouter et le choisir. Le téléphone en mode silencieux reste silencieux.",
+                          fontSize = 15.sp,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant
+                      )
+                      for (rowStart in listOf(0, 2)) {
+                          Row(
+                              modifier = Modifier.fillMaxWidth(),
+                              horizontalArrangement = Arrangement.spacedBy(10.dp)
+                          ) {
+                              for (i in rowStart until rowStart + 2) {
+                                  val name = ReoFenuaSound.names[i]
+                                  val onPick = {
+                                      ReoFenuaSound.save(context, i)
+                                      ReoFenuaSound.play(context, i, force = true)
+                                  }
+                                  if (i == current) {
+                                      Button(
+                                          onClick = onPick,
+                                          modifier = Modifier
+                                              .weight(1f)
+                                              .heightIn(min = 52.dp)
+                                      ) {
+                                          Text(text = "✓ " + name, fontSize = 16.sp)
+                                      }
+                                  } else {
+                                      OutlinedButton(
+                                          onClick = onPick,
+                                          modifier = Modifier
+                                              .weight(1f)
+                                              .heightIn(min = 52.dp)
+                                      ) {
+                                          Text(text = name, fontSize = 16.sp)
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          '''
+          EASY_KT = r'''package com.bitchat.android.ui
+
+          import android.content.Context
+          import android.graphics.BitmapFactory
+          import android.net.Uri
+          import androidx.activity.compose.rememberLauncherForActivityResult
+          import androidx.activity.result.contract.ActivityResultContracts
+          import androidx.compose.foundation.Image
+          import androidx.compose.foundation.background
+          import androidx.compose.foundation.layout.Arrangement
+          import androidx.compose.foundation.layout.Box
+          import androidx.compose.foundation.layout.Column
+          import androidx.compose.foundation.layout.Row
+          import androidx.compose.foundation.layout.Spacer
+          import androidx.compose.foundation.layout.fillMaxSize
+          import androidx.compose.foundation.layout.fillMaxWidth
+          import androidx.compose.foundation.layout.height
+          import androidx.compose.foundation.layout.heightIn
+          import androidx.compose.foundation.layout.padding
+          import androidx.compose.foundation.layout.size
+          import androidx.compose.foundation.rememberScrollState
+          import androidx.compose.foundation.shape.CircleShape
+          import androidx.compose.foundation.verticalScroll
+          import androidx.compose.material3.Button
+          import androidx.compose.material3.ButtonDefaults
+          import androidx.compose.material3.MaterialTheme
+          import androidx.compose.material3.OutlinedButton
+          import androidx.compose.material3.OutlinedTextField
+          import androidx.compose.material3.Surface
+          import androidx.compose.material3.Text
+          import androidx.compose.material3.TextButton
+          import androidx.compose.runtime.Composable
+          import androidx.compose.runtime.LaunchedEffect
+          import androidx.compose.runtime.collectAsState
+          import androidx.compose.runtime.getValue
+          import androidx.compose.runtime.mutableStateMapOf
+          import androidx.compose.runtime.mutableStateOf
+          import androidx.compose.runtime.remember
+          import androidx.compose.runtime.setValue
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.draw.clip
+          import androidx.compose.ui.graphics.Color
+          import androidx.compose.ui.graphics.asImageBitmap
+          import androidx.compose.ui.layout.ContentScale
+          import androidx.compose.ui.platform.LocalContext
+          import androidx.compose.ui.text.font.FontWeight
+          import androidx.compose.ui.unit.Dp
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+          import androidx.compose.ui.window.Dialog
+          import androidx.compose.ui.window.DialogProperties
+          import com.bitchat.android.model.DeliveryStatus
+          import org.json.JSONObject
+          import java.io.File
+
+          private val EOcean = Color(0xFF0B3C5D)
+          private val ELagon = Color(0xFF0E7C86)
+          private val EVanille = Color(0xFFE8B33A)
+          private val ERouge = Color(0xFFC8102E)
+          private val EVert = Color(0xFF2E7D32)
+
+          // ===================== Statut de livraison en mots =====================
+
+          /** Mot simple affiché à côté des coches sous vos messages privés. */
+          fun reoFenuaStatusWord(status: DeliveryStatus): String = when (status) {
+              is DeliveryStatus.Sending -> "envoi…"
+              is DeliveryStatus.Sent -> "parti"
+              is DeliveryStatus.Delivered -> "arrivé"
+              is DeliveryStatus.Read -> "lu"
+              is DeliveryStatus.Failed -> "pas encore parti"
+              is DeliveryStatus.PartiallyDelivered -> "arrivé " + status.reached + "/" + status.total
+          }
+
+          // ===================== Taille du texte =====================
+
+          object ReoFenuaTextSize {
+              private const val PREFS = "reo_fenua_guide"
+              private const val KEY = "text_scale"
+              val names = listOf("Normal", "Grand", "Très grand")
+              val values = listOf(1.0f, 1.15f, 1.3f)
+              val scale = mutableStateOf(1.0f)
+              private var loaded = false
+
+              fun load(context: Context) {
+                  if (loaded) return
+                  loaded = true
+                  scale.value = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getFloat(KEY, 1.0f)
+              }
+
+              fun save(context: Context, value: Float) {
+                  scale.value = value
+                  context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putFloat(KEY, value).apply()
+              }
+          }
+
+          // ===================== Mes proches (nom et photo) =====================
+
+          object ReoFenuaContacts {
+              private const val FILE = "reo_contacts.json"
+              val aliases = mutableStateMapOf<String, String>()
+              val photoVersion = mutableStateOf(0)
+              val show = mutableStateOf(false)
+              private var loaded = false
+
+              fun load(context: Context) {
+                  if (loaded) return
+                  loaded = true
+                  try {
+                      val f = File(context.filesDir, FILE)
+                      if (!f.exists()) return
+                      val o = JSONObject(f.readText())
+                      val keys = o.keys()
+                      while (keys.hasNext()) {
+                          val k = keys.next()
+                          aliases[k] = o.optString(k)
+                      }
+                  } catch (e: Exception) {
+                      // fichier abîmé : on repart de zéro
+                  }
+              }
+
+              fun save(context: Context) {
+                  try {
+                      val o = JSONObject()
+                      for ((k, v) in aliases) o.put(k, v)
+                      File(context.filesDir, FILE).writeText(o.toString())
+                  } catch (e: Exception) {
+                      // on réessaiera
+                  }
+              }
+
+              fun nameFor(key: String, fallback: String): String {
+                  val a = aliases[key]
+                  return if (a.isNullOrBlank()) fallback else a
+              }
+
+              fun rename(context: Context, key: String, name: String) {
+                  load(context)
+                  aliases[key] = name.trim().take(40)
+                  save(context)
+              }
+
+              fun photoFile(context: Context, key: String): File {
+                  val dir = File(context.filesDir, "reo_contacts")
+                  dir.mkdirs()
+                  val safe = key.replace(Regex("[^A-Za-z0-9_-]"), "_").take(80)
+                  return File(dir, "$safe.jpg")
+              }
+          }
+
+          // ===================== Bloquer une personne =====================
+
+          /** Personnes bloquées (copie locale pour l'affichage ; le blocage réel est fait par l'application). */
+          object ReoFenuaBlock {
+              private const val PREFS = "reo_fenua_guide"
+              private const val KEY = "blocked_keys"
+              val blocked = mutableStateMapOf<String, Boolean>()
+              private var loaded = false
+
+              fun load(context: Context) {
+                  if (loaded) return
+                  loaded = true
+                  val set = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY, emptySet()) ?: emptySet()
+                  for (s in set) blocked[s] = true
+              }
+
+              private fun save(context: Context) {
+                  context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                      .putStringSet(KEY, HashSet(blocked.keys)).apply()
+              }
+
+              fun isBlocked(key: String): Boolean = blocked[key] == true
+
+              /** Bloque par l'identifiant, sinon par le pseudo. Renvoie false si la personne est introuvable. */
+              fun block(context: Context, viewModel: ChatViewModel, key: String, nickname: String): Boolean {
+                  load(context)
+                  val mesh = viewModel.meshServiceFacade
+                  val ok = try {
+                      viewModel.privateChatManager.blockPeer(key, mesh) ||
+                          viewModel.privateChatManager.blockPeerByNickname(nickname, mesh)
+                  } catch (e: Exception) {
+                      false
+                  }
+                  if (ok) {
+                      blocked[key] = true
+                      save(context)
+                  }
+                  return ok
+              }
+
+              fun unblock(context: Context, viewModel: ChatViewModel, key: String, nickname: String) {
+                  load(context)
+                  val mesh = viewModel.meshServiceFacade
+                  try {
+                      if (!viewModel.privateChatManager.unblockPeer(key, mesh)) {
+                          viewModel.privateChatManager.unblockPeerByNickname(nickname, mesh)
+                      }
+                  } catch (e: Exception) {
+                      // on retire quand même de la liste locale
+                  }
+                  blocked.remove(key)
+                  save(context)
+              }
+          }
+
+          /** Les personnes connues : conversations privées + personnes autour en ce moment. */
+          fun reoKnownPeople(
+              chats: Map<String, List<com.bitchat.android.model.BitchatMessage>>,
+              nicknames: Map<String, String>,
+              myPeerID: String,
+              myNick: String
+          ): List<Pair<String, String>> {
+              val map = LinkedHashMap<String, String>()
+              for ((conv, msgs) in chats) {
+                  val other = msgs.lastOrNull { it.senderPeerID != myPeerID && it.sender != myNick && it.sender != "system" }
+                  val name = other?.sender ?: msgs.lastOrNull()?.recipientNickname ?: nicknames[conv]
+                  if (!name.isNullOrBlank()) map[conv] = name
+              }
+              for ((id, name) in nicknames) {
+                  if (id != myPeerID && !map.containsKey(id) && name.isNotBlank()) map[id] = name
+              }
+              return map.map { Pair(it.key, it.value) }
+          }
+
+          /** Photo ronde du proche, ou la première lettre de son nom. */
+          @Composable
+          fun ReoFenuaAvatar(key: String, name: String, size: Dp) {
+              val context = LocalContext.current
+              val version = ReoFenuaContacts.photoVersion.value
+              val photo = remember(key, version) {
+                  val f = ReoFenuaContacts.photoFile(context, key)
+                  if (f.exists()) BitmapFactory.decodeFile(f.absolutePath)?.asImageBitmap() else null
+              }
+              if (photo != null) {
+                  Image(
+                      bitmap = photo,
+                      contentDescription = name,
+                      contentScale = ContentScale.Crop,
+                      modifier = Modifier
+                          .size(size)
+                          .clip(CircleShape)
+                  )
+              } else {
+                  Box(
+                      modifier = Modifier
+                          .size(size)
+                          .background(Color(0xFFD7ECEE), CircleShape),
+                      contentAlignment = Alignment.Center
+                  ) {
+                      Text(
+                          text = name.trim().take(1).uppercase(),
+                          fontSize = (size.value * 0.42f).sp,
+                          fontWeight = FontWeight.Bold,
+                          color = EOcean
+                      )
+                  }
+              }
+          }
+
+          // ===================== Alerte : messages rapides =====================
+
+          object ReoFenuaAlert {
+              val show = mutableStateOf(false)
+          }
+
+          private class QuickAlert(val label: String, val text: String, val color: Color, val onColor: Color)
+
+          private val quickAlerts = listOf(
+              QuickAlert("Je vais bien", "Je vais bien.", EVert, Color.White),
+              QuickAlert("J'ai besoin d'aide !", "J'ai besoin d'aide !", ERouge, Color.White),
+              QuickAlert("Besoin d'eau", "J'ai besoin d'eau.", ELagon, Color.White),
+              QuickAlert("Besoin d'un médecin", "J'ai besoin d'un médecin.", ERouge, Color.White),
+              QuickAlert("Route coupée ici", "Attention : la route est coupée ici.", EVanille, EOcean),
+              QuickAlert("Où êtes-vous ?", "Où êtes-vous ?", EOcean, Color.White)
+          )
+
+          /** Hôte des écrans « faciles » : alerte et mes proches. Toujours présent sur l'écran principal. */
+          @Composable
+          fun ReoFenuaEasyHost(viewModel: ChatViewModel) {
+              ReoFenuaModeChooser()
+              if (ReoFenuaAlert.show.value) {
+                  AlertDialogScreen(viewModel = viewModel, onClose = { ReoFenuaAlert.show.value = false })
+              }
+              if (ReoFenuaContacts.show.value) {
+                  Dialog(
+                      onDismissRequest = { ReoFenuaContacts.show.value = false },
+                      properties = DialogProperties(usePlatformDefaultWidth = false)
+                  ) {
+                      Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                          ContactsScreen(viewModel = viewModel, onClose = { ReoFenuaContacts.show.value = false })
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          private fun AlertDialogScreen(viewModel: ChatViewModel, onClose: () -> Unit) {
+              val selected by viewModel.selectedPrivateChatPeer.collectAsState()
+              val nicknames by viewModel.peerNicknames.collectAsState()
+              var sentText by remember { mutableStateOf("") }
+              val target = selected?.let { id -> ReoFenuaContacts.nameFor(id, nicknames[id] ?: "cette personne") }
+
+              Dialog(
+                  onDismissRequest = onClose,
+                  properties = DialogProperties(usePlatformDefaultWidth = false)
+              ) {
+                  Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                      Column(modifier = Modifier.fillMaxSize()) {
+                          Row(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .background(ERouge)
+                                  .padding(start = 20.dp, end = 8.dp, top = 36.dp, bottom = 14.dp),
+                              verticalAlignment = Alignment.CenterVertically
+                          ) {
+                              Column(modifier = Modifier.weight(1f)) {
+                                  Text(text = "Message rapide", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                  Text(
+                                      text = if (target != null) "Envoyé à : $target" else "Envoyé à : tout le monde autour de vous",
+                                      fontSize = 15.sp,
+                                      color = Color.White
+                                  )
+                              }
+                              TextButton(onClick = onClose) {
+                                  Text(text = "Fermer", fontSize = 17.sp, color = Color.White)
+                              }
+                          }
+                          NihoManoBand(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .height(12.dp)
+                          )
+                          Column(
+                              modifier = Modifier
+                                  .weight(1f)
+                                  .fillMaxWidth()
+                                  .verticalScroll(rememberScrollState())
+                                  .padding(16.dp),
+                              verticalArrangement = Arrangement.spacedBy(12.dp)
+                          ) {
+                              Text(
+                                  text = "Touchez un bouton : le message part tout de suite.",
+                                  fontSize = 17.sp,
+                                  color = MaterialTheme.colorScheme.onBackground
+                              )
+                              for (q in quickAlerts) {
+                                  Button(
+                                      onClick = {
+                                          viewModel.sendMessage(q.text)
+                                          sentText = "Envoyé ✓  « " + q.text + " »"
+                                      },
+                                      colors = ButtonDefaults.buttonColors(containerColor = q.color, contentColor = q.onColor),
+                                      modifier = Modifier
+                                          .fillMaxWidth()
+                                          .heightIn(min = 64.dp)
+                                  ) {
+                                      Text(text = q.label, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                  }
+                              }
+                              if (sentText.isNotEmpty()) {
+                                  Text(text = sentText, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = EVert)
+                              }
+                              Text(
+                                  text = "Le message passe de téléphone en téléphone. Plus il y a de monde autour, plus il va loin.",
+                                  fontSize = 15.sp,
+                                  color = MaterialTheme.colorScheme.onSurfaceVariant
+                              )
+                          }
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          private fun ContactsScreen(viewModel: ChatViewModel, onClose: () -> Unit) {
+              val context = LocalContext.current
+              LaunchedEffect(Unit) { ReoFenuaContacts.load(context) }
+              val chats by viewModel.privateChats.collectAsState()
+              val nicknames by viewModel.peerNicknames.collectAsState()
+              val myNick by viewModel.nickname.collectAsState()
+              val people = remember(chats, nicknames, myNick) {
+                  reoKnownPeople(chats, nicknames, viewModel.myPeerID, myNick)
+              }
+              var editing by remember { mutableStateOf<String?>(null) }
+              var editText by remember { mutableStateOf("") }
+              var pickingFor by remember { mutableStateOf<String?>(null) }
+              var confirmBlock by remember { mutableStateOf<Pair<String, String>?>(null) }
+              var blockInfo by remember { mutableStateOf("") }
+              LaunchedEffect(Unit) { ReoFenuaBlock.load(context) }
+
+              val picker = rememberLauncherForActivityResult(
+                  contract = ActivityResultContracts.GetContent()
+              ) { uri: Uri? ->
+                  val key = pickingFor
+                  if (uri != null && key != null) {
+                      val tmp = com.bitchat.android.features.media.ImageUtils.downscaleAndSaveToAppFiles(
+                          context, uri, maxDim = 400, quality = 85
+                      )
+                      if (tmp != null) {
+                          try {
+                              val src = File(tmp)
+                              src.copyTo(ReoFenuaContacts.photoFile(context, key), overwrite = true)
+                              src.delete()
+                              ReoFenuaContacts.photoVersion.value += 1
+                          } catch (e: Exception) {
+                              // photo non enregistrée
+                          }
+                      }
+                  }
+                  pickingFor = null
+              }
+
+              Column(modifier = Modifier.fillMaxSize()) {
+                  Row(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .background(ELagon)
+                          .padding(start = 20.dp, end = 8.dp, top = 36.dp, bottom = 14.dp),
+                      verticalAlignment = Alignment.CenterVertically
+                  ) {
+                      Column(modifier = Modifier.weight(1f)) {
+                          Text(text = "Mes proches", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                          Text(text = "Donnez un nom et une photo à vos proches", fontSize = 14.sp, color = Color.White)
+                      }
+                      TextButton(onClick = onClose) {
+                          Text(text = "Fermer", fontSize = 17.sp, color = Color.White)
+                      }
+                  }
+                  NihoManoBand(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .height(12.dp)
+                  )
+                  Column(
+                      modifier = Modifier
+                          .weight(1f)
+                          .fillMaxWidth()
+                          .verticalScroll(rememberScrollState())
+                          .padding(16.dp),
+                      verticalArrangement = Arrangement.spacedBy(12.dp)
+                  ) {
+                      if (people.isEmpty()) {
+                          Text(
+                              text = "Personne pour le moment. Les personnes que vous rencontrez dans « Autour de moi » apparaîtront ici.",
+                              fontSize = 17.sp,
+                              color = MaterialTheme.colorScheme.onSurfaceVariant
+                          )
+                      }
+                      if (blockInfo.isNotEmpty()) {
+                          Text(text = blockInfo, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = ERouge)
+                      }
+                      val ask = confirmBlock
+                      if (ask != null) {
+                          Surface(color = Color(0xFFFDE3E7), shape = MaterialTheme.shapes.large) {
+                              Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                  Text(
+                                      text = "Bloquer " + ReoFenuaContacts.nameFor(ask.first, ask.second) + " ?",
+                                      fontSize = 19.sp,
+                                      fontWeight = FontWeight.Bold,
+                                      color = ERouge
+                                  )
+                                  Text(
+                                      text = "Vous ne recevrez plus ses messages ni ses lettres, et elle ne pourra plus vous écrire en privé. Vous pourrez la débloquer quand vous voulez.",
+                                      fontSize = 16.sp,
+                                      color = EOcean
+                                  )
+                                  Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                      Button(
+                                          onClick = {
+                                              val ok = ReoFenuaBlock.block(context, viewModel, ask.first, ask.second)
+                                              blockInfo = if (ok) "Personne bloquée." else "Impossible pour le moment : la personne doit avoir été autour de vous récemment. Réessayez plus tard."
+                                              confirmBlock = null
+                                          },
+                                          colors = ButtonDefaults.buttonColors(containerColor = ERouge, contentColor = Color.White),
+                                          modifier = Modifier.weight(1f).heightIn(min = 52.dp)
+                                      ) { Text(text = "Oui, bloquer", fontSize = 16.sp) }
+                                      OutlinedButton(
+                                          onClick = { confirmBlock = null },
+                                          modifier = Modifier.weight(1f).heightIn(min = 52.dp)
+                                      ) { Text(text = "Non", fontSize = 16.sp) }
+                                  }
+                              }
+                          }
+                      }
+                      for ((key, defaultName) in people) {
+                          val shown = ReoFenuaContacts.nameFor(key, defaultName)
+                          val isBlocked = ReoFenuaBlock.isBlocked(key)
+                          Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.large) {
+                              Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                  Row(verticalAlignment = Alignment.CenterVertically) {
+                                      ReoFenuaAvatar(key = key, name = shown, size = 56.dp)
+                                      Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
+                                          Text(text = shown, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                          if (shown != defaultName) {
+                                              Text(text = "Pseudo : $defaultName", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                          }
+                                          if (isBlocked) {
+                                              Text(text = "Bloquée", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ERouge)
+                                          }
+                                      }
+                                  }
+                                  if (editing == key) {
+                                      OutlinedTextField(
+                                          value = editText,
+                                          onValueChange = { editText = it.take(40) },
+                                          label = { Text("Nom (par exemple : Mama, Teva…)") },
+                                          singleLine = true,
+                                          modifier = Modifier.fillMaxWidth()
+                                      )
+                                      Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                          Button(
+                                              onClick = {
+                                                  ReoFenuaContacts.rename(context, key, editText)
+                                                  editing = null
+                                              },
+                                              modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                                          ) { Text(text = "Enregistrer", fontSize = 16.sp) }
+                                          OutlinedButton(
+                                              onClick = { editing = null },
+                                              modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                                          ) { Text(text = "Annuler", fontSize = 16.sp) }
+                                      }
+                                  } else {
+                                      Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                          OutlinedButton(
+                                              onClick = {
+                                                  editing = key
+                                                  editText = shown
+                                              },
+                                              modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                                          ) { Text(text = "Changer le nom", fontSize = 15.sp) }
+                                          OutlinedButton(
+                                              onClick = {
+                                                  pickingFor = key
+                                                  picker.launch("image/*")
+                                              },
+                                              modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                                          ) { Text(text = "Choisir une photo", fontSize = 15.sp) }
+                                      }
+                                      if (isBlocked) {
+                                          OutlinedButton(
+                                              onClick = {
+                                                  ReoFenuaBlock.unblock(context, viewModel, key, defaultName)
+                                                  blockInfo = "Personne débloquée."
+                                              },
+                                              modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                          ) { Text(text = "Débloquer", fontSize = 15.sp) }
+                                      } else {
+                                          TextButton(
+                                              onClick = { confirmBlock = Pair(key, defaultName) },
+                                              modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                          ) { Text(text = "Bloquer cette personne", fontSize = 15.sp, color = ERouge) }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                      Spacer(modifier = Modifier.height(24.dp))
+                  }
+              }
+          }
+
+          // ===================== Carte « Facilité » dans l'écran d'information =====================
+
+          @Composable
+          fun ReoFenuaEasyCard() {
+              val context = LocalContext.current
+              LaunchedEffect(Unit) { ReoFenuaTextSize.load(context) }
+              val current = ReoFenuaTextSize.scale.value
+
+              Surface(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 20.dp, vertical = 12.dp),
+                  color = MaterialTheme.colorScheme.surface,
+                  shape = MaterialTheme.shapes.large
+              ) {
+                  Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                      Text(text = "Taille du texte", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                          for (i in ReoFenuaTextSize.names.indices) {
+                              val v = ReoFenuaTextSize.values[i]
+                              val selected = kotlin.math.abs(current - v) < 0.01f
+                              if (selected) {
+                                  Button(
+                                      onClick = { ReoFenuaTextSize.save(context, v) },
+                                      modifier = Modifier.weight(1f).heightIn(min = 52.dp)
+                                  ) { Text(text = ReoFenuaTextSize.names[i], fontSize = 15.sp) }
+                              } else {
+                                  OutlinedButton(
+                                      onClick = { ReoFenuaTextSize.save(context, v) },
+                                      modifier = Modifier.weight(1f).heightIn(min = 52.dp)
+                                  ) { Text(text = ReoFenuaTextSize.names[i], fontSize = 15.sp) }
+                              }
+                          }
+                      }
+                      Spacer(modifier = Modifier.height(4.dp))
+                      Text(text = "Mes proches et le réseau", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                      Button(
+                          onClick = { ReoFenuaContacts.show.value = true },
+                          modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                      ) { Text(text = "Mes proches (nom et photo)", fontSize = 17.sp) }
+                      OutlinedButton(
+                          onClick = { ReoFenuaNetwork.showMap.value = true },
+                          modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                      ) { Text(text = "Carte du réseau", fontSize = 17.sp) }
+                      OutlinedButton(
+                          onClick = { ReoFenuaNetwork.showRelay.value = true },
+                          modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                      ) { Text(text = "Mode relais (vieux téléphone fixe)", fontSize = 17.sp) }
+                  }
+              }
+          }
+
+          // ===================== Mode simple / mode complet =====================
+
+          object ReoFenuaMode {
+              private const val PREFS = "reo_fenua_guide"
+              private const val KEY = "simple_mode"
+              val simple = mutableStateOf(false)
+              val needsChoice = mutableStateOf(false)
+              private var loaded = false
+
+              fun load(context: Context) {
+                  if (loaded) return
+                  loaded = true
+                  val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                  needsChoice.value = !prefs.contains(KEY)
+                  simple.value = prefs.getBoolean(KEY, false)
+              }
+
+              fun set(context: Context, isSimple: Boolean) {
+                  simple.value = isSimple
+                  needsChoice.value = false
+                  context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY, isSimple).apply()
+                  // En mode simple, on met le texte en grand (si la personne ne l'a pas déjà agrandi)
+                  ReoFenuaTextSize.load(context)
+                  if (isSimple && ReoFenuaTextSize.scale.value < 1.1f) ReoFenuaTextSize.save(context, 1.15f)
+              }
+          }
+
+          /** Écran de choix affiché une fois, après l'introduction. */
+          @Composable
+          fun ReoFenuaModeChooser() {
+              val context = LocalContext.current
+              LaunchedEffect(Unit) { ReoFenuaMode.load(context) }
+              if (!ReoFenuaMode.needsChoice.value || ReoFenuaGuide.showIntro.value) return
+
+              Dialog(
+                  onDismissRequest = { },
+                  properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)
+              ) {
+                  Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                      Column(
+                          modifier = Modifier
+                              .fillMaxSize()
+                              .verticalScroll(rememberScrollState())
+                      ) {
+                          NihoManoBand(
+                              modifier = Modifier
+                                  .fillMaxWidth()
+                                  .padding(top = 28.dp)
+                                  .height(14.dp)
+                          )
+                          Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                              Text(text = "Comment voulez-vous utiliser Reo Fenua ?", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                              Text(text = "Vous pourrez changer plus tard en touchant le logo.", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                              ModeChoice(
+                                  title = "Mode simple",
+                                  body = "Pour envoyer des messages, des photos et des messages vocaux, avec le bouton Alerte. Grand texte, peu de boutons.",
+                                  color = EVert,
+                                  onClick = { ReoFenuaMode.set(context, true) }
+                              )
+                              ModeChoice(
+                                  title = "Mode complet",
+                                  body = "Toutes les fonctions : lettres, mes proches, carte du réseau, mode relais, mises à jour, réglages.",
+                                  color = ELagon,
+                                  onClick = { ReoFenuaMode.set(context, false) }
+                              )
+                          }
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          private fun ModeChoice(title: String, body: String, color: Color, onClick: () -> Unit) {
+              Button(
+                  onClick = onClick,
+                  colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = Color.White),
+                  shape = MaterialTheme.shapes.extraLarge,
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .heightIn(min = 120.dp)
+              ) {
+                  Column(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                      Text(text = title, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                      Text(text = body, fontSize = 16.sp)
+                  }
+              }
+          }
+
+          /** Carte en haut de l'écran d'information : changer de mode à tout moment. */
+          @Composable
+          fun ReoFenuaModeCard() {
+              val context = LocalContext.current
+              LaunchedEffect(Unit) { ReoFenuaMode.load(context) }
+              val isSimple = ReoFenuaMode.simple.value
+              Surface(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 20.dp, vertical = 12.dp),
+                  color = MaterialTheme.colorScheme.surface,
+                  shape = MaterialTheme.shapes.large
+              ) {
+                  Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                      Text(
+                          text = if (isSimple) "Vous êtes en mode simple" else "Vous êtes en mode complet",
+                          fontSize = 20.sp,
+                          fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.primary
+                      )
+                      Text(
+                          text = if (isSimple) "Messages, photos, vocaux et Alerte. Les autres fonctions sont cachées."
+                          else "Toutes les fonctions sont visibles.",
+                          fontSize = 15.sp,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant
+                      )
+                      OutlinedButton(
+                          onClick = { ReoFenuaMode.set(context, !isSimple) },
+                          modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                      ) {
+                          Text(text = if (isSimple) "Passer en mode complet" else "Passer en mode simple", fontSize = 17.sp)
+                      }
+                  }
+              }
+          }
+          '''
+          NETWORK_KT = r'''package com.bitchat.android.ui
+
+          import android.content.Context
+          import android.content.Intent
+          import android.os.BatteryManager
+          import android.provider.Settings
+          import androidx.compose.foundation.Canvas
+          import androidx.compose.foundation.background
+          import androidx.compose.foundation.layout.Arrangement
+          import androidx.compose.foundation.layout.Box
+          import androidx.compose.foundation.layout.Column
+          import androidx.compose.foundation.layout.Row
+          import androidx.compose.foundation.layout.Spacer
+          import androidx.compose.foundation.layout.fillMaxSize
+          import androidx.compose.foundation.layout.fillMaxWidth
+          import androidx.compose.foundation.layout.height
+          import androidx.compose.foundation.layout.heightIn
+          import androidx.compose.foundation.layout.padding
+          import androidx.compose.foundation.layout.size
+          import androidx.compose.foundation.rememberScrollState
+          import androidx.compose.foundation.shape.CircleShape
+          import androidx.compose.foundation.verticalScroll
+          import androidx.compose.material3.Button
+          import androidx.compose.material3.MaterialTheme
+          import androidx.compose.material3.OutlinedButton
+          import androidx.compose.material3.Surface
+          import androidx.compose.material3.Text
+          import androidx.compose.material3.TextButton
+          import androidx.compose.runtime.Composable
+          import androidx.compose.runtime.LaunchedEffect
+          import androidx.compose.runtime.collectAsState
+          import androidx.compose.runtime.getValue
+          import androidx.compose.runtime.mutableIntStateOf
+          import androidx.compose.runtime.mutableStateOf
+          import androidx.compose.runtime.remember
+          import androidx.compose.runtime.setValue
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.geometry.Offset
+          import androidx.compose.ui.graphics.Color
+          import androidx.compose.ui.graphics.PathEffect
+          import androidx.compose.ui.graphics.StrokeCap
+          import androidx.compose.ui.graphics.drawscope.Stroke
+          import androidx.compose.ui.platform.LocalContext
+          import androidx.compose.ui.text.TextStyle
+          import androidx.compose.ui.text.drawText
+          import androidx.compose.ui.text.font.FontWeight
+          import androidx.compose.ui.text.rememberTextMeasurer
+          import androidx.compose.ui.unit.dp
+          import androidx.compose.ui.unit.sp
+          import androidx.compose.ui.window.Dialog
+          import androidx.compose.ui.window.DialogProperties
+          import kotlinx.coroutines.delay
+
+          private val NOcean = Color(0xFF0B3C5D)
+          private val NLagon = Color(0xFF0E7C86)
+          private val NLagonClair = Color(0xFF4FC3CC)
+          private val NVanille = Color(0xFFE8B33A)
+          private val NNuit = Color(0xFF071E2E)
+
+          object ReoFenuaNetwork {
+              val showRelay = mutableStateOf(false)
+              val showMap = mutableStateOf(false)
+
+              fun batteryLevel(context: Context): Int {
+                  val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return -1
+                  return bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+              }
+
+              fun isCharging(context: Context): Boolean {
+                  val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return false
+                  return bm.isCharging
+              }
+          }
+
+          /** Hôte du mode relais et de la carte du réseau. Toujours présent sur l'écran principal. */
+          @Composable
+          fun ReoFenuaNetworkHost(viewModel: ChatViewModel) {
+              if (ReoFenuaNetwork.showRelay.value) {
+                  Dialog(
+                      onDismissRequest = { ReoFenuaNetwork.showRelay.value = false },
+                      properties = DialogProperties(usePlatformDefaultWidth = false)
+                  ) {
+                      Surface(modifier = Modifier.fillMaxSize(), color = NNuit) {
+                          RelayScreen(viewModel = viewModel, onClose = { ReoFenuaNetwork.showRelay.value = false })
+                      }
+                  }
+              }
+              if (ReoFenuaNetwork.showMap.value) {
+                  Dialog(
+                      onDismissRequest = { ReoFenuaNetwork.showMap.value = false },
+                      properties = DialogProperties(usePlatformDefaultWidth = false)
+                  ) {
+                      Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                          MapScreen(viewModel = viewModel, onClose = { ReoFenuaNetwork.showMap.value = false })
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          private fun RelayScreen(viewModel: ChatViewModel, onClose: () -> Unit) {
+              val context = LocalContext.current
+              val connected by viewModel.connectedPeers.collectAsState()
+              var battery by remember { mutableIntStateOf(-1) }
+              var charging by remember { mutableStateOf(false) }
+              var direct by remember { mutableIntStateOf(0) }
+
+              // Le relais continue même écran éteint grâce au service en arrière-plan
+              LaunchedEffect(Unit) {
+                  try {
+                      com.bitchat.android.service.MeshServicePreferences.setBackgroundEnabled(true)
+                      com.bitchat.android.service.MeshForegroundService.start(context)
+                  } catch (e: Exception) {
+                      // le service démarrera avec l'application
+                  }
+              }
+              LaunchedEffect(connected) {
+                  while (true) {
+                      battery = ReoFenuaNetwork.batteryLevel(context)
+                      charging = ReoFenuaNetwork.isCharging(context)
+                      direct = connected.count { viewModel.getMeshPeerInfo(it)?.isDirectConnection == true }
+                      delay(10_000L)
+                  }
+              }
+
+              Column(
+                  modifier = Modifier
+                      .fillMaxSize()
+                      .verticalScroll(rememberScrollState())
+                      .padding(24.dp),
+                  verticalArrangement = Arrangement.spacedBy(18.dp)
+              ) {
+                  Spacer(modifier = Modifier.height(24.dp))
+                  NihoManoBand(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .height(12.dp),
+                      color = NLagon,
+                      accent = NVanille
+                  )
+                  Text(text = "Relais actif", fontSize = 36.sp, fontWeight = FontWeight.Bold, color = NLagonClair)
+                  Text(
+                      text = "Ce téléphone fait passer les messages de tout le monde autour.",
+                      fontSize = 19.sp,
+                      lineHeight = 27.sp,
+                      color = Color(0xFFF3ECE0)
+                  )
+                  Surface(color = Color(0xFF0B2A3E), shape = MaterialTheme.shapes.large) {
+                      Column(modifier = Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                          Text(
+                              text = connected.size.toString() + if (connected.size > 1) " téléphones reliés" else " téléphone relié",
+                              fontSize = 26.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = Color.White
+                          )
+                          Text(text = "dont $direct en direct", fontSize = 17.sp, color = Color(0xFFA9BFCC))
+                          val batteryText = when {
+                              battery < 0 -> "Batterie : inconnue"
+                              charging -> "Batterie : $battery % · en charge ✓"
+                              else -> "Batterie : $battery % · pas en charge"
+                          }
+                          Text(
+                              text = batteryText,
+                              fontSize = 17.sp,
+                              color = if (!charging && battery in 0..30) NVanille else Color(0xFFA9BFCC)
+                          )
+                      }
+                  }
+                  Text(text = "Pour un bon relais :", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                  Text(
+                      text = "• Branchez-le sur un chargeur ou un petit panneau solaire.\n" +
+                          "• Placez-le en hauteur, près d'une fenêtre, vers la vallée ou la route.\n" +
+                          "• Vous pouvez éteindre l'écran : le relais continue.\n" +
+                          "• Laissez le Bluetooth allumé.",
+                      fontSize = 17.sp,
+                      lineHeight = 26.sp,
+                      color = Color(0xFFF3ECE0)
+                  )
+                  OutlinedButton(
+                      onClick = {
+                          try {
+                              val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                              intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                              context.startActivity(intent)
+                          } catch (e: Exception) {
+                              // réglage indisponible sur ce téléphone
+                          }
+                      },
+                      modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                  ) {
+                      Text(text = "Empêcher la batterie de couper le relais", fontSize = 16.sp, color = NLagonClair)
+                  }
+                  Button(
+                      onClick = onClose,
+                      modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                  ) {
+                      Text(text = "Quitter cet écran (le relais reste actif)", fontSize = 16.sp)
+                  }
+                  Spacer(modifier = Modifier.height(24.dp))
+              }
+          }
+
+          @Composable
+          private fun MapScreen(viewModel: ChatViewModel, onClose: () -> Unit) {
+              val context = LocalContext.current
+              val connected by viewModel.connectedPeers.collectAsState()
+              val nicknames by viewModel.peerNicknames.collectAsState()
+              var tick by remember { mutableIntStateOf(0) }
+              LaunchedEffect(Unit) {
+                  while (true) {
+                      delay(5_000L)
+                      tick += 1
+                  }
+              }
+              val directIds = remember(connected, tick) {
+                  connected.filter { viewModel.getMeshPeerInfo(it)?.isDirectConnection == true }
+              }
+              val relayedIds = remember(connected, tick) { connected.filter { it !in directIds } }
+              fun nameOf(id: String): String = ReoFenuaContacts.nameFor(id, nicknames[id] ?: "?").take(12)
+
+              val measurer = rememberTextMeasurer()
+              val labelStyle = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = NOcean)
+              val meStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = NOcean)
+
+              Column(modifier = Modifier.fillMaxSize()) {
+                  Row(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .background(NLagon)
+                          .padding(start = 20.dp, end = 8.dp, top = 36.dp, bottom = 14.dp),
+                      verticalAlignment = Alignment.CenterVertically
+                  ) {
+                      Column(modifier = Modifier.weight(1f)) {
+                          Text(text = "Carte du réseau", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                          Text(text = "Les téléphones Reo Fenua autour de vous", fontSize = 14.sp, color = Color.White)
+                      }
+                      TextButton(onClick = onClose) {
+                          Text(text = "Fermer", fontSize = 17.sp, color = Color.White)
+                      }
+                  }
+                  NihoManoBand(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .height(12.dp)
+                  )
+                  Box(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .height(360.dp)
+                          .background(Color(0xFFD7ECEE))
+                  ) {
+                      Canvas(modifier = Modifier.fillMaxSize()) {
+                          val c = Offset(size.width / 2f, size.height / 2f)
+                          val r1 = size.minDimension * 0.27f
+                          val r2 = size.minDimension * 0.44f
+                          drawCircle(color = NLagonClair.copy(alpha = 0.18f), radius = r2, center = c)
+                          drawCircle(color = NLagonClair.copy(alpha = 0.25f), radius = r1, center = c)
+                          fun ring(ids: List<String>, r: Float, start: Float, dot: Color, link: Boolean) {
+                              val n = ids.size
+                              for (i in 0 until n) {
+                                  val a = start + (2.0 * Math.PI * i / n).toFloat()
+                                  val p = Offset(c.x + r * kotlin.math.cos(a), c.y + r * kotlin.math.sin(a))
+                                  if (link) {
+                                      drawLine(
+                                          color = NVanille,
+                                          start = c,
+                                          end = p,
+                                          strokeWidth = 5f,
+                                          cap = StrokeCap.Round,
+                                          pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 14f), 0f)
+                                      )
+                                  }
+                                  drawCircle(color = Color.White, radius = 22f, center = p)
+                                  drawCircle(color = dot, radius = 15f, center = p)
+                                  val t = measurer.measure(nameOf(ids[i]), labelStyle)
+                                  drawText(t, topLeft = Offset(p.x - t.size.width / 2f, p.y + 26f))
+                              }
+                          }
+                          ring(directIds, r1, -1.2f, NLagon, true)
+                          ring(relayedIds, r2, -0.6f, NLagonClair, false)
+                          drawCircle(color = NVanille, radius = 34f, center = c)
+                          drawCircle(color = NOcean, radius = 34f, center = c, style = Stroke(width = 4f))
+                          val me = measurer.measure("Vous", meStyle)
+                          drawText(me, topLeft = Offset(c.x - me.size.width / 2f, c.y - me.size.height / 2f))
+                      }
+                  }
+                  Column(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .verticalScroll(rememberScrollState())
+                          .padding(16.dp),
+                      verticalArrangement = Arrangement.spacedBy(10.dp)
+                  ) {
+                      if (connected.isEmpty()) {
+                          Text(
+                              text = "Personne autour pour le moment. Rapprochez-vous d'autres téléphones avec Reo Fenua, ou installez un relais.",
+                              fontSize = 17.sp,
+                              color = MaterialTheme.colorScheme.onBackground
+                          )
+                      } else {
+                          Text(
+                              text = connected.size.toString() + " téléphone" + (if (connected.size > 1) "s" else "") + " autour de vous",
+                              fontSize = 20.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = MaterialTheme.colorScheme.primary
+                          )
+                      }
+                      Row(verticalAlignment = Alignment.CenterVertically) {
+                          Box(modifier = Modifier.size(18.dp).background(NLagon, CircleShape))
+                          Text(
+                              text = "  En direct (" + directIds.size + ") : tout près de vous, par Bluetooth ou Wi-Fi",
+                              fontSize = 15.sp,
+                              color = MaterialTheme.colorScheme.onBackground
+                          )
+                      }
+                      Row(verticalAlignment = Alignment.CenterVertically) {
+                          Box(modifier = Modifier.size(18.dp).background(NLagonClair, CircleShape))
+                          Text(
+                              text = "  Par relais (" + relayedIds.size + ") : plus loin, joints grâce à d'autres téléphones",
+                              fontSize = 15.sp,
+                              color = MaterialTheme.colorScheme.onBackground
+                          )
+                      }
+                      Text(
+                          text = "Astuce : un vieux téléphone en « Mode relais », branché en hauteur, agrandit beaucoup le réseau.",
+                          fontSize = 15.sp,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant
+                      )
+                      OutlinedButton(
+                          onClick = {
+                              ReoFenuaNetwork.showMap.value = false
+                              ReoFenuaNetwork.showRelay.value = true
+                          },
+                          modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                      ) {
+                          Text(text = "Passer ce téléphone en mode relais", fontSize = 16.sp)
+                      }
+                  }
+              }
+          }
+          '''
+          SOUNDS_B64 = {'reo_ukulele.ogg': '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', 'reo_pu.ogg': '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', 'reo_clochette.ogg': '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'}
           ICON_BG = r'''<?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"
@@ -2076,7 +4416,7 @@ jobs:
 
           # ---------- 1b. Textes anglais écrits directement dans le code (écrans de démarrage) ----------
           JAVA = pathlib.Path("app/src/main/java/com/bitchat/android")
-          code_files = list((JAVA / "onboarding").glob("*.kt")) + [JAVA / "MainActivity.kt"]
+          code_files = list((JAVA / "onboarding").glob("*.kt")) + [JAVA / "MainActivity.kt", JAVA / "ui" / "PrivateChatManager.kt"]
           pairs = [l.split("\t", 1) for l in CODE_FR.strip().splitlines() if "\t" in l]
           done = 0
           for f in code_files:
@@ -2105,12 +4445,22 @@ jobs:
 
           # ---------- 3. Introduction au premier lancement + rubrique Aide ----------
           (UI / "ReoFenuaGuide.kt").write_text(GUIDE_KT)
+          (UI / "ReoFenuaMailbox.kt").write_text(MAILBOX_KT)
+          (UI / "ReoFenuaSound.kt").write_text(SOUND_KT)
+          (UI / "ReoFenuaEasy.kt").write_text(EASY_KT)
+          (UI / "ReoFenuaNetwork.kt").write_text(NETWORK_KT)
+          import base64 as _b64
+          raw = RES / "raw"
+          raw.mkdir(parents=True, exist_ok=True)
+          for _name, _data in SOUNDS_B64.items():
+              (raw / _name).write_bytes(_b64.b64decode(_data))
+          print("Sons polynésiens ajoutés.")
 
           chat = UI / "ChatScreen.kt"
           anchor = "    // About sheet\n"
           c = chat.read_text() if chat.exists() else ""
           if c.count(anchor) == 1:
-              c = c.replace(anchor, "    // Reo Fenua : introduction\n    ReoFenuaIntroGate()\n\n" + anchor)
+              c = c.replace(anchor, "    // Reo Fenua : introduction et boîte aux lettres\n    ReoFenuaIntroGate()\n    ReoFenuaMailboxHost(viewModel)\n    ReoFenuaSoundWatcher(viewModel)\n    ReoFenuaEasyHost(viewModel)\n    ReoFenuaNetworkHost(viewModel)\n\n" + anchor)
               print("Introduction ajoutée.")
           else:
               warn("Emplacement de l'introduction introuvable.")
@@ -2137,8 +4487,30 @@ jobs:
                   '                    }\n\n'
                   '                    item(key = "reo_wallpaper") {\n'
                   '                        ReoFenuaWallpaperCard()\n'
+                  '                    }\n\n'
+                  '                    item(key = "reo_sound") {\n'
+                  '                        ReoFenuaSoundCard()\n'
+                  '                    }\n\n'
+                  '                    item(key = "reo_easy") {\n'
+                  '                        ReoFenuaEasyCard()\n'
                   '                    }\n\n' + anchor2))
               print("Rubrique Aide ajoutée.")
+              # Mode simple : carte de mode en premier, fonctions avancées cachées
+              a = about.read_text()
+              a = a.replace('                    item(key = "reo_update") {',
+                            '                    item(key = "reo_mode") {\n'
+                            '                        ReoFenuaModeCard()\n'
+                            '                    }\n\n'
+                            '                    if (!ReoFenuaMode.simple.value) item(key = "reo_update") {', 1)
+              for _k in ("reo_wallpaper", "reo_easy"):
+                  a = a.replace('                    item(key = "' + _k + '") {',
+                                '                    if (!ReoFenuaMode.simple.value) item(key = "' + _k + '") {', 1)
+              a = a.replace('                    item(key = "tabs") {',
+                            '                    if (!ReoFenuaMode.simple.value) item(key = "tabs") {', 1)
+              a = a.replace('                    if (selectedTab == AboutTab.Settings) {',
+                            '                    if (selectedTab == AboutTab.Settings && !ReoFenuaMode.simple.value) {', 1)
+              about.write_text(a)
+              print("Mode simple branché dans l'écran d'information.")
           else:
               warn("Emplacement de l'aide introuvable.")
 
@@ -2219,6 +4591,79 @@ jobs:
               sec.write_text(t[:i] + nb + t[j:])
               print("Boutons arrondis.")
 
+          # ---------- 3d. Mise à jour téléchargée et installée par l'application ----------
+          (UI / "ReoFenuaUpdate.kt").write_text(
+              UPDATE_KT.replace("__REPO__", os.environ.get("REPO", "")).replace("__TAG__", os.environ.get("TAG", ""))
+          )
+          man = pathlib.Path("app/src/main/AndroidManifest.xml")
+          m = man.read_text()
+          if "REQUEST_INSTALL_PACKAGES" not in m:
+              m = m.replace('    <uses-permission android:name="android.permission.INTERNET" />',
+                            '    <uses-permission android:name="android.permission.INTERNET" />\n'
+                            '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />', 1)
+              man.write_text(m)
+          print("Mise à jour intégrée à l'application.")
+
+          # ---------- 3e. Statut en mots sous les messages + texte plus grand ----------
+          mcf = UI / "MessageComponents.kt"
+          t = mcf.read_text() if mcf.exists() else ""
+          old_status = """    Text(
+                  text = text,
+                  fontSize = 10.sp,
+                  fontWeight = FontWeight.Normal,
+                  modifier = Modifier.graphicsLayer {
+                      scaleX = scale.value
+                      scaleY = scale.value
+                  }
+              )
+          }"""
+          new_status = """    androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+                  Text(
+                      text = text,
+                      fontSize = 10.sp,
+                      fontWeight = FontWeight.Normal,
+                      modifier = Modifier.graphicsLayer {
+                          scaleX = scale.value
+                          scaleY = scale.value
+                      }
+                  )
+                  Text(
+                      text = reoFenuaStatusWord(status),
+                      fontSize = 11.sp,
+                      color = colorScheme.onSurfaceVariant,
+                      modifier = Modifier.padding(start = 3.dp)
+                  )
+              }
+          }"""
+          if t.count(old_status) == 1:
+              t = t.replace(old_status, new_status)
+              t = t.replace("message.sender == currentUserNickname) 16.dp else 0.dp",
+                            "message.sender == currentUserNickname) 72.dp else 0.dp")
+              mcf.write_text(t)
+              print("Statut de livraison en mots.")
+          else:
+              warn("Statut de livraison : emplacement introuvable.")
+
+          thf = UI / "theme/Theme.kt"
+          t = thf.read_text() if thf.exists() else ""
+          old_cp = "    CompositionLocalProvider(LocalBitchatPalette provides palette) {"
+          new_cp = """    val reoContext = androidx.compose.ui.platform.LocalContext.current
+              com.bitchat.android.ui.ReoFenuaTextSize.load(reoContext)
+              val reoDensity = androidx.compose.ui.platform.LocalDensity.current
+              val reoScale = com.bitchat.android.ui.ReoFenuaTextSize.scale.value
+              CompositionLocalProvider(
+                  LocalBitchatPalette provides palette,
+                  androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(
+                      reoDensity.density,
+                      reoDensity.fontScale * reoScale
+                  )
+              ) {"""
+          if t.count(old_cp) == 1:
+              thf.write_text(t.replace(old_cp, new_cp))
+              print("Option « grand texte » branchée.")
+          else:
+              warn("Taille du texte : emplacement introuvable.")
+
           # ---------- 4. Nouvelle icône ----------
           draw = RES / "drawable"
           draw.mkdir(parents=True, exist_ok=True)
@@ -2279,6 +4724,12 @@ jobs:
           APK=$(ls upstream/app/build/outputs/apk/debug/*universal*.apk 2>/dev/null | head -1)
           [ -n "$APK" ] || APK=$(ls upstream/app/build/outputs/apk/debug/*.apk | head -1)
           cp "$APK" sortie/reo-fenua.apk
+          # Versions plus légères, une par type de téléphone (le bouton de mise à jour choisit la bonne)
+          for ABI in arm64-v8a armeabi-v7a x86_64 x86; do
+            F=$(ls upstream/app/build/outputs/apk/debug/*-"$ABI"-*.apk 2>/dev/null | head -1)
+            if [ -n "$F" ]; then cp "$F" "sortie/reo-fenua-$ABI.apk"; fi
+          done
+          ls -la sortie/
           # Empreinte de la signature : doit être identique à chaque version
           SIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
           "$SIGNER" verify --print-certs sortie/reo-fenua.apk | grep -i 'SHA-256' || true
@@ -2296,4 +4747,4 @@ jobs:
           gh release create "$TAG" sortie/*.apk \
             --repo "${{ github.repository }}" \
             --title "Reo Fenua $TAG" \
-            --notes "APK de test Reo Fenua. Sur le téléphone : ouvrir reo-fenua.apk et autoriser l'installation d'applications inconnues. Désinstaller BitChat avant s'il est déjà installé."
+            --notes "Pour installer Reo Fenua : téléchargez **reo-fenua.apk** (marche sur tous les téléphones Android), ouvrez-le et autorisez l'installation d'applications inconnues. Les autres fichiers (arm64, armeabi…) sont des versions plus légères utilisées automatiquement par le bouton de mise à jour."
