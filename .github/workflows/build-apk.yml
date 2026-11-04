@@ -735,6 +735,14 @@ jobs:
           import androidx.compose.ui.semantics.semantics
           import androidx.compose.ui.unit.Dp
           import androidx.compose.ui.zIndex
+          import androidx.compose.ui.geometry.CornerRadius
+          import androidx.compose.ui.graphics.PathEffect
+          import androidx.compose.ui.graphics.StrokeCap
+          import androidx.compose.ui.graphics.drawscope.DrawScope
+          import androidx.compose.ui.graphics.drawscope.Stroke
+          import androidx.compose.ui.text.TextStyle
+          import androidx.compose.ui.text.drawText
+          import androidx.compose.ui.text.rememberTextMeasurer
           import android.graphics.BitmapFactory
           import androidx.compose.foundation.Image
           import androidx.compose.ui.graphics.asImageBitmap
@@ -792,10 +800,10 @@ jobs:
               ),
               IntroPage(
                   "Pour bien commencer",
-                  "• Touchez votre nom en haut pour le changer.\n" +
-                      "• Écrivez en bas, puis envoyez.\n" +
-                      "• Le chiffre à côté des personnes montre combien de téléphones sont autour.\n" +
-                      "• Laissez le Bluetooth allumé."
+                  "1  Touchez votre nom pour le changer.\n" +
+                      "2  Le chiffre montre combien de personnes sont autour.\n" +
+                      "3  Le bouton « ? » ouvre le mode d'emploi.\n" +
+                      "4  Écrivez en bas : texte, photo, fichier ou message vocal."
               ),
               IntroPage(
                   "En cas de coupure",
@@ -914,11 +922,16 @@ jobs:
                   Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                       Column(modifier = Modifier.fillMaxSize()) {
                           Box(modifier = Modifier.fillMaxWidth()) {
-                              LagonIllustration(
-                                  modifier = Modifier
-                                      .fillMaxWidth()
-                                      .height(if (page == 0) 300.dp else 160.dp)
-                              )
+                              val illustrationModifier = Modifier
+                                  .fillMaxWidth()
+                                  .height(if (page == 0) 300.dp else 230.dp)
+                              when (page) {
+                                  1 -> ChainSchema(illustrationModifier)
+                                  2 -> NetworkSchema(illustrationModifier)
+                                  3 -> ScreenSchema(illustrationModifier)
+                                  4 -> OutageSchema(illustrationModifier)
+                                  else -> LagonIllustration(illustrationModifier)
+                              }
                               TextButton(
                                   onClick = onDone,
                                   modifier = Modifier
@@ -1711,6 +1724,263 @@ jobs:
                           }
                       }
                   }
+              }
+          }
+
+
+          // ===================== Schémas de l'introduction =====================
+
+          private val SableClair = Color(0xFFF7EFE2)
+          private val CielGris = Color(0xFF9FB8C2)
+          private val Rouge = Color(0xFFC8102E)
+          private val Vert = Color(0xFF2E7D32)
+
+          private fun dashed(h: Float) = Stroke(
+              width = h * 0.018f,
+              cap = StrokeCap.Round,
+              pathEffect = PathEffect.dashPathEffect(floatArrayOf(h * 0.04f, h * 0.045f), 0f)
+          )
+
+          private fun DrawScope.phone(c: Offset, h: Float) {
+              val w = h * 0.56f
+              drawRoundRect(
+                  color = Ocean,
+                  topLeft = Offset(c.x - w / 2f, c.y - h / 2f),
+                  size = Size(w, h),
+                  cornerRadius = CornerRadius(w * 0.2f)
+              )
+              drawRoundRect(
+                  color = SableClair,
+                  topLeft = Offset(c.x - w / 2f + w * 0.12f, c.y - h / 2f + h * 0.1f),
+                  size = Size(w * 0.76f, h * 0.74f),
+                  cornerRadius = CornerRadius(w * 0.08f)
+              )
+          }
+
+          private fun DrawScope.bubble(c: Offset, s: Float) {
+              drawRoundRect(
+                  color = Vanille,
+                  topLeft = Offset(c.x - s, c.y - s * 0.65f),
+                  size = Size(s * 2f, s * 1.25f),
+                  cornerRadius = CornerRadius(s * 0.35f)
+              )
+              val tail = Path().apply {
+                  moveTo(c.x - s * 0.4f, c.y + s * 0.55f)
+                  lineTo(c.x - s * 0.7f, c.y + s * 1.05f)
+                  lineTo(c.x + s * 0.1f, c.y + s * 0.55f)
+                  close()
+              }
+              drawPath(path = tail, color = Vanille)
+          }
+
+          /** Page 2 : le message saute de téléphone en téléphone. */
+          @Composable
+          private fun ChainSchema(modifier: Modifier) {
+              Box(modifier = modifier.background(Ciel)) {
+                  Canvas(modifier = Modifier.matchParentSize()) {
+                      val w = size.width
+                      val h = size.height
+                      val y = h * 0.5f
+                      val ph = h * 0.38f
+                      val xs = listOf(w / 6f, w / 2f, w * 5f / 6f)
+                      for (i in 0 until 2) {
+                          val mid = (xs[i] + xs[i + 1]) / 2f
+                          val arc = Path().apply {
+                              moveTo(xs[i] + ph * 0.36f, y - ph * 0.15f)
+                              quadraticTo(mid, y - ph * 0.85f, xs[i + 1] - ph * 0.36f, y - ph * 0.15f)
+                          }
+                          drawPath(path = arc, color = Lagon, style = dashed(h))
+                          bubble(Offset(mid, y - ph * 0.78f), ph * 0.2f)
+                      }
+                      for (x in xs) phone(Offset(x, y), ph)
+                  }
+                  Row(
+                      modifier = Modifier
+                          .align(Alignment.BottomCenter)
+                          .fillMaxWidth()
+                          .padding(bottom = 14.dp)
+                  ) {
+                      for (label in listOf("Vous", "Voisin", "Mama")) {
+                          Text(
+                              text = label,
+                              modifier = Modifier.weight(1f),
+                              textAlign = TextAlign.Center,
+                              fontSize = 19.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = Ocean
+                          )
+                      }
+                  }
+              }
+          }
+
+          /** Page 3 : chaque téléphone agrandit le réseau, dans la vallée et au bord du lagon. */
+          @Composable
+          private fun NetworkSchema(modifier: Modifier) {
+              Canvas(modifier = modifier) {
+                  val w = size.width
+                  val h = size.height
+                  drawRect(color = Ciel, size = Size(w, h))
+                  val montagnes = Path().apply {
+                      moveTo(0f, h * 0.72f)
+                      lineTo(w * 0.14f, h * 0.45f)
+                      lineTo(w * 0.24f, h * 0.56f)
+                      lineTo(w * 0.4f, h * 0.22f)
+                      lineTo(w * 0.55f, h * 0.52f)
+                      lineTo(w * 0.66f, h * 0.42f)
+                      lineTo(w * 0.84f, h * 0.72f)
+                      close()
+                  }
+                  drawPath(path = montagnes, color = Ocean.copy(alpha = 0.85f))
+                  drawRect(color = Lagon, topLeft = Offset(0f, h * 0.7f), size = Size(w, h * 0.3f))
+
+                  val nodes = listOf(
+                      Offset(w * 0.1f, h * 0.8f),
+                      Offset(w * 0.3f, h * 0.74f),
+                      Offset(w * 0.5f, h * 0.8f),
+                      Offset(w * 0.7f, h * 0.74f),
+                      Offset(w * 0.9f, h * 0.8f)
+                  )
+                  for (n in nodes) drawCircle(color = LagonClair.copy(alpha = 0.3f), radius = w * 0.11f, center = n)
+                  for (i in 0 until nodes.size - 1) {
+                      drawLine(
+                          color = Vanille,
+                          start = nodes[i],
+                          end = nodes[i + 1],
+                          strokeWidth = h * 0.016f,
+                          cap = StrokeCap.Round,
+                          pathEffect = PathEffect.dashPathEffect(floatArrayOf(h * 0.035f, h * 0.04f), 0f)
+                      )
+                  }
+                  for (n in nodes) {
+                      drawCircle(color = SableClair, radius = h * 0.045f, center = n)
+                      drawCircle(color = Ocean, radius = h * 0.02f, center = n)
+                  }
+              }
+          }
+
+          /** Page 4 : mini écran de Reo Fenua avec les numéros des boutons importants. */
+          @Composable
+          private fun ScreenSchema(modifier: Modifier) {
+              val measurer = rememberTextMeasurer()
+              val numStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ocean)
+              Canvas(modifier = modifier.background(Color(0xFFEFE5D5))) {
+                  val w = size.width
+                  val h = size.height
+                  val pw = h * 0.6f
+                  val phh = h * 0.9f
+                  val left = w / 2f - pw / 2f
+                  val top = h * 0.05f
+                  drawRoundRect(color = Ocean, topLeft = Offset(left, top), size = Size(pw, phh), cornerRadius = CornerRadius(pw * 0.1f))
+                  val sl = left + pw * 0.05f
+                  val st = top + phh * 0.04f
+                  val sw = pw * 0.9f
+                  val sh = phh * 0.92f
+                  drawRoundRect(color = SableClair, topLeft = Offset(sl, st), size = Size(sw, sh), cornerRadius = CornerRadius(pw * 0.06f))
+
+                  val nameY = st + sh * 0.08f
+                  drawRoundRect(
+                      color = Lagon,
+                      topLeft = Offset(sl + sw * 0.07f, nameY - sh * 0.03f),
+                      size = Size(sw * 0.42f, sh * 0.06f),
+                      cornerRadius = CornerRadius(sh * 0.02f)
+                  )
+                  val people = Offset(sl + sw * 0.85f, nameY)
+                  drawCircle(color = Lagon, radius = sh * 0.035f, center = people)
+                  val help = Offset(sl + sw * 0.85f, st + sh * 0.21f)
+                  drawCircle(color = Vanille, radius = sh * 0.045f, center = help)
+                  val inputY = st + sh * 0.9f
+                  drawRoundRect(
+                      color = Color.White,
+                      topLeft = Offset(sl + sw * 0.07f, inputY - sh * 0.04f),
+                      size = Size(sw * 0.62f, sh * 0.08f),
+                      cornerRadius = CornerRadius(sh * 0.04f)
+                  )
+                  drawCircle(color = Vanille, radius = sh * 0.045f, center = Offset(sl + sw * 0.84f, inputY))
+
+                  val r = h * 0.07f
+                  val gap = r * 2.3f
+                  val badges = listOf(
+                      Triple(Offset(left - gap, nameY), Offset(sl + sw * 0.07f, nameY), "1"),
+                      Triple(Offset(left + pw + gap, nameY), Offset(people.x + sh * 0.035f, nameY), "2"),
+                      Triple(Offset(left + pw + gap, help.y + h * 0.12f), Offset(help.x + sh * 0.04f, help.y), "3"),
+                      Triple(Offset(left - gap, inputY), Offset(sl + sw * 0.07f, inputY), "4")
+                  )
+                  for ((c, target, n) in badges) {
+                      drawLine(color = Ocean, start = c, end = target, strokeWidth = h * 0.01f)
+                      drawCircle(color = Vanille, radius = r, center = c)
+                      val t = measurer.measure(n, numStyle)
+                      drawText(t, topLeft = Offset(c.x - t.size.width / 2f, c.y - t.size.height / 2f))
+                  }
+              }
+          }
+
+          /** Page 5 : cyclone, plus de réseau, mais les téléphones se parlent quand même. */
+          @Composable
+          private fun OutageSchema(modifier: Modifier) {
+              Canvas(modifier = modifier) {
+                  val w = size.width
+                  val h = size.height
+                  drawRect(color = CielGris, size = Size(w, h))
+
+                  // Symbole du cyclone : un œil et deux bras en spirale
+                  val cc = Offset(w * 0.18f, h * 0.27f)
+                  val cr = h * 0.08f
+                  val spiral = Stroke(width = h * 0.035f, cap = StrokeCap.Round)
+                  drawCircle(color = Ocean.copy(alpha = 0.75f), radius = cr, center = cc, style = Stroke(width = h * 0.03f))
+                  val bras1 = Path().apply {
+                      moveTo(cc.x, cc.y - cr)
+                      quadraticTo(cc.x + cr * 1.9f, cc.y - cr * 1.6f, cc.x + cr * 2.1f, cc.y + cr * 0.2f)
+                  }
+                  val bras2 = Path().apply {
+                      moveTo(cc.x, cc.y + cr)
+                      quadraticTo(cc.x - cr * 1.9f, cc.y + cr * 1.6f, cc.x - cr * 2.1f, cc.y - cr * 0.2f)
+                  }
+                  drawPath(path = bras1, color = Ocean.copy(alpha = 0.75f), style = spiral)
+                  drawPath(path = bras2, color = Ocean.copy(alpha = 0.75f), style = spiral)
+
+                  // Antenne barrée : pas de réseau
+                  val ax = w * 0.82f
+                  drawLine(color = Ocean, start = Offset(ax, h * 0.12f), end = Offset(ax, h * 0.42f), strokeWidth = h * 0.02f)
+                  val ondes = Path().apply {
+                      moveTo(ax - h * 0.08f, h * 0.15f)
+                      quadraticTo(ax, h * 0.06f, ax + h * 0.08f, h * 0.15f)
+                  }
+                  drawPath(path = ondes, color = Ocean, style = Stroke(width = h * 0.015f, cap = StrokeCap.Round))
+                  drawLine(
+                      color = Rouge,
+                      start = Offset(ax - h * 0.11f, h * 0.1f),
+                      end = Offset(ax + h * 0.11f, h * 0.44f),
+                      strokeWidth = h * 0.03f,
+                      cap = StrokeCap.Round
+                  )
+
+                  // Deux téléphones qui se parlent quand même
+                  val y = h * 0.7f
+                  val ph = h * 0.32f
+                  val p1 = Offset(w * 0.3f, y)
+                  val p2 = Offset(w * 0.7f, y)
+                  val arc = Path().apply {
+                      moveTo(p1.x + ph * 0.36f, y - ph * 0.2f)
+                      quadraticTo(w / 2f, y - ph * 0.95f, p2.x - ph * 0.36f, y - ph * 0.2f)
+                  }
+                  drawPath(path = arc, color = Vanille, style = dashed(h))
+                  phone(p1, ph)
+                  phone(p2, ph)
+                  val ok = Path().apply {
+                      moveTo(w / 2f - h * 0.04f, y - ph * 0.72f)
+                      lineTo(w / 2f - h * 0.005f, y - ph * 0.62f)
+                      lineTo(w / 2f + h * 0.06f, y - ph * 0.86f)
+                  }
+                  drawPath(path = ok, color = Vert, style = Stroke(width = h * 0.025f, cap = StrokeCap.Round))
+
+                  // Batterie pleine
+                  val bw = h * 0.16f
+                  val bh = h * 0.08f
+                  val bl = Offset(w / 2f - bw / 2f, h * 0.9f - bh / 2f)
+                  drawRoundRect(color = Ocean, topLeft = bl, size = Size(bw, bh), cornerRadius = CornerRadius(h * 0.012f), style = Stroke(width = h * 0.012f))
+                  drawRect(color = Ocean, topLeft = Offset(bl.x + bw, bl.y + bh * 0.3f), size = Size(h * 0.015f, bh * 0.4f))
+                  drawRect(color = Vert, topLeft = Offset(bl.x + h * 0.012f, bl.y + h * 0.012f), size = Size(bw - h * 0.024f, bh - h * 0.024f))
               }
           }
           '''
